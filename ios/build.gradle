@@ -8,6 +8,12 @@ buildscript {
 }
 apply plugin: 'robovm'
 
+
+java {
+  sourceCompatibility = JavaVersion.VERSION_17
+  targetCompatibility = JavaVersion.VERSION_17
+}
+
 [compileJava, compileTestJava]*.options*.encoding = 'UTF-8'
 
 ext {

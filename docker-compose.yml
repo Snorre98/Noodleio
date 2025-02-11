@@ -1,0 +1,17 @@
+version: '3'
+services:
+  game:
+    build: .
+    environment:
+      - DISPLAY=${DISPLAY}
+      - ANDROID_HOME=/opt/android-sdk
+    volumes:
+      - /tmp/.X11-unix:/tmp/.X11-unix
+      - .:/app
+      - gradle-cache:/root/.gradle
+      - android-cache:/opt/android-sdk
+    working_dir: /app
+
+volumes:
+  gradle-cache:
+  android-cache:  # Persist Android SDK downloads
