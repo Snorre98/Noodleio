@@ -9,7 +9,7 @@ buildscript {
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
   }
   dependencies {
-    classpath "com.android.tools.build:gradle:8.5.2"
+    classpath 'com.android.tools.build:gradle:8.7.3'
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
 
   }
@@ -31,7 +31,8 @@ allprojects {
 configure(subprojects - project(':android')) {
   apply plugin: 'java-library'
   apply plugin: 'kotlin'
-  sourceCompatibility = 8
+  sourceCompatibility = 17
+  targetCompatibility = 17
 
   // From https://lyze.dev/2021/04/29/libGDX-Internal-Assets-List/
   // The article can be helpful when using assets.txt in your project.
@@ -58,7 +59,7 @@ configure(subprojects - project(':android')) {
   }
   compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
   compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-  
+
 }
 
 subprojects {
@@ -73,6 +74,21 @@ subprojects {
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
     maven { url 'https://jitpack.io' }
   }
+  plugins.withType(JavaPlugin).tap {
+    configureEach {
+      jar {
+        archiveBaseName.set("core-${projectVersion}")
+        archiveVersion.set(projectVersion)
+
+        manifest {
+          attributes(
+            'Main-Class': 'gr17.noodleio.game.Core'
+          )
+        }
+      }
+    }
+  }
+
 }
 
 eclipse.project.name = 'noodleio' + '-parent'
