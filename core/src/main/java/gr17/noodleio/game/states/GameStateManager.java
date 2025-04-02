@@ -13,6 +13,10 @@ public class GameStateManager {
     private GameStateManager() {
         states = new Stack<>();
     }
+    
+    public boolean isEmpty() {
+        return states.isEmpty();
+    }
 
     public static GameStateManager getInstance() {
         if (instance == null) {
@@ -26,20 +30,35 @@ public class GameStateManager {
     }
 
     public void pop() {
-        states.pop();
+        State state = states.pop();
+        state.dispose(); // Make sure to dispose the state being removed
     }
 
     public void set(State state) {
-        states.pop();
+        if (!states.isEmpty()) {
+            State oldState = states.pop();
+            oldState.dispose(); // Make sure to dispose the old state
+        }
         states.push(state);
     }
 
     public void update(float dt) {
-        states.peek().update(dt);
+        if (!states.isEmpty()) {
+            states.peek().update(dt);
+        }
     }
 
     public void render(SpriteBatch sb) {
-        states.peek().render(sb);
+        if (!states.isEmpty()) {
+            states.peek().render(sb);
+        }
+    }
+    
+    public void disposeAll() {
+        while (!states.isEmpty()) {
+            State state = states.pop();
+            state.dispose();
+        }
     }
 
 }
