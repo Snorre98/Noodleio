@@ -15,10 +15,16 @@ public class GameStateManager {
     }
 
     public static GameStateManager getInstance() {
-        if (instance == null) {
-            instance = new GameStateManager();
+        GameStateManager result = instance;
+        if (result == null) {
+            synchronized (GameStateManager.class) {
+                result = instance;
+                if (result == null) {
+                    instance = result = new GameStateManager();
+                }
+            }
         }
-        return instance;
+        return result;
     }
 
     public void push(State state) {
@@ -26,11 +32,17 @@ public class GameStateManager {
     }
 
     public void pop() {
-        states.pop();
+        if (!states.isEmpty()) {
+            states.peek().dispose();
+            states.pop();
+        }
     }
 
     public void set(State state) {
-        states.pop();
+        if (!states.isEmpty()) {
+            states.peek().dispose();
+            states.pop();
+        }
         states.push(state);
     }
 
