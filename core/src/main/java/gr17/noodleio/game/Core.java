@@ -3,8 +3,6 @@ package gr17.noodleio.game;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
@@ -18,12 +16,9 @@ import gr17.noodleio.game.util.ResourceManager;
 public class Core extends ApplicationAdapter {
     private GameStateManager gsm;
     private SpriteBatch batch;
-    private Texture image;
 
     private OrthographicCamera camera;
     private Viewport viewport;
-
-    private BitmapFont testText;
 
     private static final float MIN_WORLD_WIDTH = 800;
     private static final float MIN_WORLD_HEIGHT = 480;
@@ -36,9 +31,10 @@ public class Core extends ApplicationAdapter {
         viewport = new DynamicViewport(MIN_WORLD_WIDTH, MIN_WORLD_HEIGHT,
             MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT, camera);
         viewport.apply(true); // Apply the viewport initially
-        testText = new BitmapFont(); // This creates the default font
+        
         batch = new SpriteBatch();
-        image = new Texture("libgdx.png");
+        
+        // Initialize game state manager and set initial state
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
 
@@ -63,6 +59,7 @@ public class Core extends ApplicationAdapter {
 
     @Override
     public void render() {
+        // Clear screen with background color
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
         camera.update();
@@ -81,7 +78,9 @@ public class Core extends ApplicationAdapter {
     @Override
     public void dispose() {
         batch.dispose();
-        image.dispose();
-        testText.dispose();
+        // Also dispose the current state
+        if (gsm != null && !gsm.isEmpty()) {
+            gsm.disposeAll();
+        }
     }
 }

@@ -13,6 +13,10 @@ public class GameStateManager {
     private GameStateManager() {
         states = new Stack<>();
     }
+    
+    public boolean isEmpty() {
+        return states.isEmpty();
+    }
 
     public static GameStateManager getInstance() {
         GameStateManager result = instance;
@@ -47,11 +51,22 @@ public class GameStateManager {
     }
 
     public void update(float dt) {
-        states.peek().update(dt);
+        if (!states.isEmpty()) {
+            states.peek().update(dt);
+        }
     }
 
     public void render(SpriteBatch sb) {
-        states.peek().render(sb);
+        if (!states.isEmpty()) {
+            states.peek().render(sb);
+        }
+    }
+    
+    public void disposeAll() {
+        while (!states.isEmpty()) {
+            State state = states.pop();
+            state.dispose();
+        }
     }
 
 }
