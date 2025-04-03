@@ -31,6 +31,15 @@ if (JavaVersion.current().isJava9Compatible()) {
 kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 
 dependencies {
+
+  // If using supabase-kt 3.0.0 and above, you need to use Ktor version 3.0.0-rc-1 or later.
+  // https://supabase.com/docs/reference/kotlin/installing
+  // - https://ktor.io/docs/client-engines.html#limitations
+
+  // implementation 'io.ktor:ktor-client-[engine]:KTOR_VERSION'
+  implementation 'io.ktor:ktor-client-cio:3.0.0-rc-1'
+
+  /*libgdx*/
   implementation "com.badlogicgames.gdx-controllers:gdx-controllers-desktop:$gdxControllersVersion"
   implementation "com.badlogicgames.gdx:gdx-backend-lwjgl3:$gdxVersion"
   implementation "com.badlogicgames.gdx:gdx-box2d-platform:$gdxVersion:natives-desktop"
