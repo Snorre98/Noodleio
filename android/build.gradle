@@ -44,9 +44,27 @@ android {
     versionName "1.0"
     multiDexEnabled true
 
-    // Add Supabase credentials to BuildConfig
-    buildConfigField "String", "SUPABASE_URL", "\"${rootProject.ext.supabaseUrl}\""
-    buildConfigField "String", "SUPABASE_KEY", "\"${rootProject.ext.supabaseKey}\""
+    // Set value part with fallbacks
+    Properties properties = new Properties()
+    try {
+      properties.load(project.rootProject.file("local.properties").newDataInputStream())
+      println("Successfully loaded local.properties")
+    } catch (Exception e) {
+      println("Failed to load local.properties: " + e.getMessage())
+      // Continue with empty properties
+    }
+
+    // Get properties with fallbacks to empty strings
+    def supabaseUrl = properties.getProperty("SUPABASE_URL", "")
+    def supabaseAnonKey = properties.getProperty("SUPABASE_ANON_KEY", "")
+
+    // Log what we found (or didn't find)
+    println("SUPABASE_URL: " + (supabaseUrl ? "found" : "not found"))
+    println("SUPABASE_ANON_KEY: " + (supabaseAnonKey ? "found" : "not found"))
+
+    // Set the build config fields with the values or empty strings
+    buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
+    buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseAnonKey}\"")
   }
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_17
@@ -61,6 +79,7 @@ android {
   }
 
   kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  buildToolsVersion '34.0.0'
 }
 
 repositories {
