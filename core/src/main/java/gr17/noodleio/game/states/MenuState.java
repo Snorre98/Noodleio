@@ -15,6 +15,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import gr17.noodleio.game.models.Lobby;
+
 public class MenuState extends State {
     private Stage stage;
     private Skin skin;
@@ -123,16 +125,14 @@ public class MenuState extends State {
         createGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                gsm.set(new LobbyState(gsm));
-                dispose(); // Dispose resources when changing states
+                gsm.set(new LobbyState(gsm, new Lobby(), "Username"));
             }
         });
 
         joinGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                gsm.set(new LobbyState(gsm));
-                dispose(); // Dispose resources when changing states
+                gsm.set(new LobbyState(gsm, new Lobby(), "Username"));
             }
         });
 

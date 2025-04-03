@@ -2,9 +2,11 @@ package gr17.noodleio.game.states;
 
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 
+import gr17.noodleio.game.models.Lobby;
+
 public class PlayState extends State {
 
-    public PlayState(GameStateManager gsm) {
+    public PlayState(GameStateManager gsm, Lobby lobby) {
         super(gsm);
     }
 
