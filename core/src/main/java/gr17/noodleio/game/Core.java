@@ -4,11 +4,14 @@ import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.states.GameStateManager;
 import gr17.noodleio.game.states.MenuState;
+import gr17.noodleio.game.util.ResourceManager;
 
 public class Core extends ApplicationAdapter {
     private GameStateManager gsm;
@@ -34,27 +37,35 @@ public class Core extends ApplicationAdapter {
         // Initialize game state manager and set initial state
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
-        
-        // Enable asset loading from internal assets directory
-        Gdx.files.internal(".");
+
+
+//        ResourceManager rm = new ResourceManager();
+//        rm.load(); //Laster inn font fra rm
+//        //Mock data
+//        Array<PlayerResult> results = new Array<>();
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Per", 120));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Paal", 90));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Espen", 70));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("You", 65));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Askeladd", 40));
+//
+//        String playerName = "Magnus";
+//        int placement = 4;
+//
+//        gsm.push(new gr17.noodleio.game.states.EndGameState(gsm, results, playerName, placement, rm));
+
+
     }
 
     @Override
     public void render() {
         // Clear screen with background color
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
-        
-        // Calculate delta time
-        float dt = Gdx.graphics.getDeltaTime();
-        
-        // Update current game state
-        gsm.update(dt);
-        
-        // Update camera and set batch projection matrix
+
         camera.update();
         batch.setProjectionMatrix(camera.combined);
-        
-        // Render current game state
+
+        gsm.update(Gdx.graphics.getDeltaTime());
         gsm.render(batch);
     }
 
