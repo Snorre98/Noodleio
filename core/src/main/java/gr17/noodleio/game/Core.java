@@ -42,23 +42,6 @@ public class Core extends ApplicationAdapter {
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
 
-
-//        ResourceManager rm = new ResourceManager();
-//        rm.load(); //Laster inn font fra rm
-//        //Mock data
-//        Array<PlayerResult> results = new Array<>();
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Per", 120));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Paal", 90));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Espen", 70));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("You", 65));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Askeladd", 40));
-//
-//        String playerName = "Magnus";
-//        int placement = 4;
-//
-//        gsm.push(new gr17.noodleio.game.states.EndGameState(gsm, results, playerName, placement, rm));
-
-
     }
 
     @Override
