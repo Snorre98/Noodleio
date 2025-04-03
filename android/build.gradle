@@ -37,6 +37,10 @@ android {
     versionCode 1
     versionName "1.0"
     multiDexEnabled true
+
+    // Add Supabase credentials to BuildConfig
+    buildConfigField "String", "SUPABASE_URL", "\"${rootProject.ext.supabaseUrl}\""
+    buildConfigField "String", "SUPABASE_KEY", "\"${rootProject.ext.supabaseKey}\""
   }
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_17
