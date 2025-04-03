@@ -6,11 +6,14 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
+import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.states.GameStateManager;
 import gr17.noodleio.game.states.MenuState;
+import gr17.noodleio.game.util.ResourceManager;
 
 public class Core extends ApplicationAdapter {
     private GameStateManager gsm;
@@ -38,23 +41,35 @@ public class Core extends ApplicationAdapter {
         image = new Texture("libgdx.png");
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
+
+
+//        ResourceManager rm = new ResourceManager();
+//        rm.load(); //Laster inn font fra rm
+//        //Mock data
+//        Array<PlayerResult> results = new Array<>();
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Per", 120));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Paal", 90));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Espen", 70));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("You", 65));
+//        results.add(new gr17.noodleio.game.model.PlayerResult("Askeladd", 40));
+//
+//        String playerName = "Magnus";
+//        int placement = 4;
+//
+//        gsm.push(new gr17.noodleio.game.states.EndGameState(gsm, results, playerName, placement, rm));
+
+
     }
 
     @Override
     public void render() {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
-        // Update camera and set batch projection matrix
         camera.update();
         batch.setProjectionMatrix(camera.combined);
 
-        batch.begin();
-        // Position image relative to viewport dimensions
-        float x = (viewport.getWorldWidth() - image.getWidth()) / 2;
-        float y = (viewport.getWorldHeight() - image.getHeight()) / 2;
-        batch.draw(image, x, y);
-        testText.draw(batch, "Your Text", x, y);
-        batch.end();
+        gsm.update(Gdx.graphics.getDeltaTime());
+        gsm.render(batch);
     }
 
     @Override
