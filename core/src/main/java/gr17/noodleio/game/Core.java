@@ -1,6 +1,7 @@
 package gr17.noodleio.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
@@ -8,7 +9,11 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import gr17.noodleio.game.states.GameStateManager;
+import gr17.noodleio.game.states.MenuState;
+
 public class Core extends ApplicationAdapter {
+    private GameStateManager gsm;
     private SpriteBatch batch;
     private Texture image;
 
@@ -31,6 +36,8 @@ public class Core extends ApplicationAdapter {
         testText = new BitmapFont(); // This creates the default font
         batch = new SpriteBatch();
         image = new Texture("libgdx.png");
+        gsm = GameStateManager.getInstance();
+        gsm.push(new MenuState(gsm));
     }
 
     @Override
