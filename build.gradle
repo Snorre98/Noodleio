@@ -9,10 +9,10 @@ buildscript {
     maven { url 'https://s01.oss.sonatype.org/content/repositories/snapshots/' }
   }
   dependencies {
-    classpath 'com.android.tools.build:gradle:8.7.3'
+    classpath 'com.android.tools.build:gradle:8.9.1'
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
     // for serialization
-    classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion"  // Add this line
+    classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion"
 
   }
 }
@@ -64,8 +64,8 @@ configure(subprojects - project(':android')) {
   compileJava {
     options.incremental = true
   }
-  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-  compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 
 }
 
