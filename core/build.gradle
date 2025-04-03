@@ -14,6 +14,9 @@ dependencies {
   implementation 'io.github.jan-tennert.supabase:auth-kt'
   implementation 'io.github.jan-tennert.supabase:realtime-kt'
 
+  // add kolinx-serialization
+  implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0"
+
   api "com.badlogicgames.ashley:ashley:$ashleyVersion"
   api "com.badlogicgames.box2dlights:box2dlights:$box2dlightsVersion"
   api "com.badlogicgames.gdx-controllers:gdx-controllers-core:$gdxControllersVersion"
