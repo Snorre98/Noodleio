@@ -4,24 +4,27 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Lobby {
-    private List<String> players;
+    private List<Player> players;
 
     public Lobby() {
         players = new ArrayList<>();
     }
 
-    public List<String> getPlayers() {
+    public List<Player> getPlayers() {
         return players;
     }
 
-    public void addPlayer(String playerName) {
-        if (!players.contains(playerName)) {
-            players.add(playerName);
+    public void addPlayer(String name) {
+        for (Player p : players) {
+            if (p.getName().equals(name)) {
+                return;
+            }
         }
+        players.add(new Player(name));
     }
 
-    public void removePlayer(String playerName) {
-        players.remove(playerName);
+    public void removePlayer(String name) {
+        players.removeIf(p -> p.getName().equals(name));
     }
 
     public void clearLobby() {
