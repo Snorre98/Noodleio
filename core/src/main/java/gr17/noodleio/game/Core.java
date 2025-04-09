@@ -8,13 +8,9 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import gr17.noodleio.game.API.LeaderboardApi;
+import gr17.noodleio.game.API.TestConnectionApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.models.LeaderboardEntry;
-import gr17.noodleio.game.services.LeaderboardService;
-import gr17.noodleio.game.services.ServiceManager;
-
-import java.util.List;
-import java.util.Random;
 
 public class Core extends ApplicationAdapter {
     private SpriteBatch batch;
@@ -31,11 +27,9 @@ public class Core extends ApplicationAdapter {
     // Environment config
     private final EnvironmentConfig environmentConfig;
 
-    // Service manager
-    private ServiceManager serviceManager;
-
-    // API service
-    private LeaderboardService api;
+    // API classes
+    private TestConnectionApi testConnectionApi;
+    private LeaderboardApi leaderboardApi;
 
     private static final float MIN_WORLD_WIDTH = 800;
     private static final float MIN_WORLD_HEIGHT = 480;
@@ -57,20 +51,18 @@ public class Core extends ApplicationAdapter {
         // Initialize services if config is provided
         if (environmentConfig != null) {
             try {
-                // Create the service manager
-                serviceManager = new ServiceManager(environmentConfig);
-
-                // Create the API service
-                api = new LeaderboardService(environmentConfig);
+                // Create API classes
+                testConnectionApi = new TestConnectionApi(environmentConfig);
+                leaderboardApi = new LeaderboardApi(environmentConfig);
 
                 // Test Supabase connection
-                statusMessage = api.testSupabaseConnection();
+                statusMessage = testConnectionApi.testSupabaseConnection();
 
                 // Add a test entry to the leaderboard
-                addTestLeaderboardEntry();
+                addEntryMessage = leaderboardApi.addTestLeaderboardEntry();
 
                 // Fetch and display the leaderboard
-                fetchLeaderboard();
+                leaderboardMessage = leaderboardApi.fetchLeaderboard(5);
             } catch (Exception e) {
                 statusMessage = "Failed to connect: " + e.getMessage();
                 e.printStackTrace();
@@ -87,59 +79,6 @@ public class Core extends ApplicationAdapter {
         testText = new BitmapFont();
         batch = new SpriteBatch();
         image = new Texture("libgdx.png");
-    }
-
-    private void addTestLeaderboardEntry() {
-        if (api != null) {
-            try {
-                // Generate a random score between 100 and 10000
-                Random random = new Random();
-                int randomScore = random.nextInt(9901) + 100; // Random score between 100 and 10000
-
-                // Generate a player name with a timestamp to make it unique
-                String playerName = "TestPlayer_" + System.currentTimeMillis();
-
-                // Add the entry
-                LeaderboardEntry newEntry = api.addLeaderboardEntry(playerName, randomScore, null);
-
-                if (newEntry != null) {
-                    addEntryMessage = "Added new entry: " + playerName + " with score " + randomScore;
-                } else {
-                    addEntryMessage = "Failed to add new leaderboard entry";
-                }
-            } catch (Exception e) {
-                addEntryMessage = "Error adding leaderboard entry: " + e.getMessage();
-                e.printStackTrace();
-            }
-        }
-    }
-
-    private void fetchLeaderboard() {
-        if (api != null) {
-            try {
-                // Get top 5 leaderboard entries
-                List<LeaderboardEntry> topEntries = api.getTopLeaderboard(5);
-
-                // Format a message to display
-                StringBuilder sb = new StringBuilder("Top 5 Players:\n");
-
-                if (topEntries.isEmpty()) {
-                    sb.append("No entries found");
-                } else {
-                    for (LeaderboardEntry entry : topEntries) {
-                        sb.append(entry.getPlayer_name())
-                            .append(": ")
-                            .append(entry.getScore())
-                            .append("\n");
-                    }
-                }
-
-                leaderboardMessage = sb.toString();
-            } catch (Exception e) {
-                leaderboardMessage = "Failed to load leaderboard: " + e.getMessage();
-                e.printStackTrace();
-            }
-        }
     }
 
     @Override
@@ -178,13 +117,13 @@ public class Core extends ApplicationAdapter {
         testText.dispose();
     }
 
-    // Accessor for ServiceManager
-    public ServiceManager getServiceManager() {
-        return serviceManager;
+    // Accessor for TestConnectionApi
+    public TestConnectionApi getTestConnectionApi() {
+        return testConnectionApi;
     }
 
-    // Accessor for Api
-    public LeaderboardService getApi() {
-        return api;
+    // Accessor for LeaderboardApi
+    public LeaderboardApi getLeaderboardApi() {
+        return leaderboardApi;
     }
 }
