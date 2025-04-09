@@ -1,6 +1,8 @@
 // In core/src/main/kotlin/gr17/noodleio/game/services/ServiceManager.kt
 package gr17.noodleio.game.services
 
+
+
 import gr17.noodleio.game.config.EnvironmentConfig
 import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.SupabaseClient
@@ -24,7 +26,6 @@ class ServiceManager(private val config: EnvironmentConfig) {
             install(Auth) {
                 // alwaysAutoRefresh = false // default: true
                 //autoLoadFromStorage = false // default: true
-                //and more...
             }
             install(Postgrest) {
                 //defaultSchema = "schema" // default: "public"
@@ -37,7 +38,7 @@ class ServiceManager(private val config: EnvironmentConfig) {
                 //reconnectDelay = 5.seconds
             }
             install(Functions){
-                // no custom setttings
+                // no custom settings
             }
         }
     }

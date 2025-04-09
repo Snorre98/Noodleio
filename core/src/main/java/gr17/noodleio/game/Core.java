@@ -9,9 +9,12 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
+import gr17.noodleio.game.models.LeaderboardEntry;
+import gr17.noodleio.game.services.Api;
 import gr17.noodleio.game.services.ServiceManager;
 
-// Import any other service classes you create
+import java.util.List;
+import java.util.Random;
 
 public class Core extends ApplicationAdapter {
     private SpriteBatch batch;
@@ -22,6 +25,8 @@ public class Core extends ApplicationAdapter {
 
     private BitmapFont testText;
     private String statusMessage = "Initializing...";
+    private String leaderboardMessage = "";
+    private String addEntryMessage = "";
 
     // Environment config
     private final EnvironmentConfig environmentConfig;
@@ -29,8 +34,8 @@ public class Core extends ApplicationAdapter {
     // Service manager
     private ServiceManager serviceManager;
 
-    // Game-specific services that use Supabase
-    //private UserService userService;
+    // API service
+    private Api api;
 
     private static final float MIN_WORLD_WIDTH = 800;
     private static final float MIN_WORLD_HEIGHT = 480;
@@ -55,10 +60,17 @@ public class Core extends ApplicationAdapter {
                 // Create the service manager
                 serviceManager = new ServiceManager(environmentConfig);
 
-                // Test Supabase connection
-                testSupabaseConnection();
+                // Create the API service
+                api = new Api(environmentConfig);
 
-                statusMessage = "Connected to Supabase!";
+                // Test Supabase connection
+                statusMessage = api.testSupabaseConnection();
+
+                // Add a test entry to the leaderboard
+                addTestLeaderboardEntry();
+
+                // Fetch and display the leaderboard
+                fetchLeaderboard();
             } catch (Exception e) {
                 statusMessage = "Failed to connect: " + e.getMessage();
                 e.printStackTrace();
@@ -77,18 +89,55 @@ public class Core extends ApplicationAdapter {
         image = new Texture("libgdx.png");
     }
 
-    private void testSupabaseConnection() {
-        // Example: Access Supabase services
-        if (serviceManager != null) {
-            // This is just to verify the client initialization works
-            // The first access to any service will trigger the lazy initialization
+    private void addTestLeaderboardEntry() {
+        if (api != null) {
             try {
-                // Just accessing the service property will initialize the client
-                Object auth = serviceManager.getAuth();
-                System.out.println("Supabase auth service initialized successfully");
+                // Generate a random score between 100 and 10000
+                Random random = new Random();
+                int randomScore = random.nextInt(9901) + 100; // Random score between 100 and 10000
+
+                // Generate a player name with a timestamp to make it unique
+                String playerName = "TestPlayer_" + System.currentTimeMillis();
+
+                // Add the entry
+                LeaderboardEntry newEntry = api.addLeaderboardEntry(playerName, randomScore, null);
+
+                if (newEntry != null) {
+                    addEntryMessage = "Added new entry: " + playerName + " with score " + randomScore;
+                } else {
+                    addEntryMessage = "Failed to add new leaderboard entry";
+                }
             } catch (Exception e) {
-                System.err.println("Error initializing Supabase: " + e.getMessage());
-                throw e;
+                addEntryMessage = "Error adding leaderboard entry: " + e.getMessage();
+                e.printStackTrace();
+            }
+        }
+    }
+
+    private void fetchLeaderboard() {
+        if (api != null) {
+            try {
+                // Get top 5 leaderboard entries
+                List<LeaderboardEntry> topEntries = api.getTopLeaderboard(5);
+
+                // Format a message to display
+                StringBuilder sb = new StringBuilder("Top 5 Players:\n");
+
+                if (topEntries.isEmpty()) {
+                    sb.append("No entries found");
+                } else {
+                    for (LeaderboardEntry entry : topEntries) {
+                        sb.append(entry.getPlayer_name())
+                            .append(": ")
+                            .append(entry.getScore())
+                            .append("\n");
+                    }
+                }
+
+                leaderboardMessage = sb.toString();
+            } catch (Exception e) {
+                leaderboardMessage = "Failed to load leaderboard: " + e.getMessage();
+                e.printStackTrace();
             }
         }
     }
@@ -107,6 +156,12 @@ public class Core extends ApplicationAdapter {
 
         // Display Supabase connection status
         testText.draw(batch, statusMessage, x, y - 30);
+
+        // Display add entry status
+        testText.draw(batch, addEntryMessage, x, y - 60);
+
+        // Display leaderboard data
+        testText.draw(batch, leaderboardMessage, x, y - 90);
 
         batch.end();
     }
@@ -128,4 +183,8 @@ public class Core extends ApplicationAdapter {
         return serviceManager;
     }
 
+    // Accessor for Api
+    public Api getApi() {
+        return api;
+    }
 }
