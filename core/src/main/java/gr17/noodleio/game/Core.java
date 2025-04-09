@@ -10,7 +10,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LeaderboardEntry;
-import gr17.noodleio.game.services.Api;
+import gr17.noodleio.game.services.LeaderboardService;
 import gr17.noodleio.game.services.ServiceManager;
 
 import java.util.List;
@@ -35,7 +35,7 @@ public class Core extends ApplicationAdapter {
     private ServiceManager serviceManager;
 
     // API service
-    private Api api;
+    private LeaderboardService api;
 
     private static final float MIN_WORLD_WIDTH = 800;
     private static final float MIN_WORLD_HEIGHT = 480;
@@ -61,7 +61,7 @@ public class Core extends ApplicationAdapter {
                 serviceManager = new ServiceManager(environmentConfig);
 
                 // Create the API service
-                api = new Api(environmentConfig);
+                api = new LeaderboardService(environmentConfig);
 
                 // Test Supabase connection
                 statusMessage = api.testSupabaseConnection();
@@ -184,7 +184,7 @@ public class Core extends ApplicationAdapter {
     }
 
     // Accessor for Api
-    public Api getApi() {
+    public LeaderboardService getApi() {
         return api;
     }
 }

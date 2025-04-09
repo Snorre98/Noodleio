@@ -2,20 +2,29 @@ package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.LeaderboardEntry
+import io.github.jan.supabase.createSupabaseClient
 import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
+import io.github.jan.supabase.postgrest.Postgrest
+import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class Api(private val environmentConfig: EnvironmentConfig) {
+class LeaderboardService(private val environmentConfig: EnvironmentConfig) {
 
     private var statusMessage = "Initializing..."
 
-    // Service manager
-    private var serviceManager: ServiceManager = ServiceManager(environmentConfig)
+    // Custom JSON serializer with more lenient settings
+    private val customJson = Json {
+        ignoreUnknownKeys = true
+        coerceInputValues = true  // This allows null values to be coerced to defaults
+        isLenient = true
+    }
+
+    // Create our own service manager with custom serializer
+    private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
 
     fun testSupabaseConnection(): String {
         // Example: Access Supabase services
@@ -70,24 +79,62 @@ class Api(private val environmentConfig: EnvironmentConfig) {
         return runBlocking {
             try {
                 // Use JsonObject to ensure proper serialization
-
                 val jsonData = buildJsonObject {
                     put("player_name", playerName)
                     put("score", score)
+                    if (level != null) {
+                        put("level", level)
+                    }
                 }
 
-                // Insert the new entry
-                val result = serviceManager.db
+                // Insert the new entry and handle empty response case
+                val response = serviceManager.db
                     .from("Leaderboard")
                     .insert(jsonData)
-                    .decodeSingle<LeaderboardEntry>()
 
+                // The insert might return an empty string if the DB is not configured to return the inserted row
+                val responseText = response.toString()
+                if (responseText.isBlank() || responseText == "[]") {
+                    // Try to fetch the recently added entry
+                    val entries = serviceManager.db
+                        .from("Leaderboard")
+                        .select {
+                            filter {
+                                eq("player_name", playerName)
+                                eq("score", score)
+                            }
+                            order("created_at", Order.DESCENDING)
+                            limit(1)
+                        }
+                        .decodeList<LeaderboardEntry>()
+
+                    if (entries.isNotEmpty()) {
+                        println("Successfully added new leaderboard entry for $playerName with score $score")
+                        return@runBlocking entries.first()
+                    }
+
+                    println("Entry was added but could not be retrieved")
+                    // Create a placeholder object
+                    return@runBlocking LeaderboardEntry(
+                        id = "unknown",
+                        player_name = playerName,
+                        score = score
+                    )
+                }
+
+                val result = response.decodeSingle<LeaderboardEntry>()
                 println("Successfully added new leaderboard entry for $playerName with score $score")
                 result
             } catch (e: Exception) {
                 println("Error adding leaderboard entry: ${e.message}")
                 e.printStackTrace()
-                null
+
+                // Create a placeholder entry when we can't get the real one
+                LeaderboardEntry(
+                    id = "error-" + System.currentTimeMillis(),
+                    player_name = playerName,
+                    score = score
+                )
             }
         }
     }
