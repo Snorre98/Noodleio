@@ -15,7 +15,6 @@ data class Lobby (
 )
 
 /*
-
 create table public."Lobby" (
   id uuid not null default gen_random_uuid (),
   max_players bigint not null default '4'::bigint,
@@ -29,27 +28,25 @@ create table public."Lobby" (
 
 /*
 
+Database function for creating a lobby with owner
+
 -- Function to create a new lobby and add a player as the owner in one operation
-CREATE OR REPLACE FUNCTION create_lobby_with_owner(
-  p_player_name VARCHAR,    -- The player's name
-  p_max_players INT DEFAULT 4  -- Maximum number of players allowed (default: 4)
-)
-RETURNS TABLE (
-  lobby_id UUID,            -- Returns the new lobby ID
-  player_id UUID,           -- Returns the new player's ID
-  player_name VARCHAR,      -- Returns the player name
-  max_players INT,          -- Returns the max players setting
-  success BOOLEAN           -- Indicates if the operation was successful
-)
-LANGUAGE plpgsql
-SECURITY DEFINER
-AS $$
+create or replace function create_lobby_with_owner (
+  p_player_name VARCHAR, -- The player's name
+  p_max_players INT default 4 -- Maximum number of players allowed (default: 4)
+) RETURNS table (
+  lobby_id UUID, -- Returns the new lobby ID
+  player_id UUID, -- Returns the new player's ID
+  player_name VARCHAR, -- Returns the player name
+  max_players INT, -- Returns the max players setting
+  success BOOLEAN -- Indicates if the operation was successful
+) LANGUAGE plpgsql SECURITY DEFINER as $$
 DECLARE
   new_lobby_id UUID;
   new_player_id UUID;
 BEGIN
   -- Check if the player name is already taken
-  IF EXISTS (SELECT 1 FROM "LobbyPlayer" WHERE player_name = p_player_name) THEN
+  IF EXISTS (SELECT 1 FROM "LobbyPlayer" WHERE "LobbyPlayer".player_name = p_player_name) THEN
     -- Return indicating failure if player name already exists
     RETURN QUERY SELECT
       NULL::UUID AS lobby_id,
@@ -99,7 +96,6 @@ BEGIN
 END;
 $$;
 
-COMMENT ON FUNCTION create_lobby_with_owner IS 'Creates a new lobby and adds a player as the owner in one atomic operation.';
 
  */
 

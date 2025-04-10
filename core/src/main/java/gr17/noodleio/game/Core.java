@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.API.LeaderboardApi;
 import gr17.noodleio.game.API.LobbyApi;
+import gr17.noodleio.game.API.LobbyPlayerApi;
 import gr17.noodleio.game.API.TestConnectionApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
 
@@ -52,6 +53,8 @@ public class Core extends ApplicationAdapter {
     private TestConnectionApi testConnectionApi;
     private LeaderboardApi leaderboardApi;
     private LobbyApi lobbyApi;
+
+    private LobbyPlayerApi lobbyPlayerApi;
 
     // Add these as fields in your Core class
     private CursorRealtimeApi cursorRealtimeApi;
@@ -148,7 +151,9 @@ public class Core extends ApplicationAdapter {
                 leaderboardApi = new LeaderboardApi(environmentConfig);
                 cursorRealtimeApi = new CursorRealtimeApi(environmentConfig);
                 lobbyApi = new LobbyApi(environmentConfig);
+                lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
 
+                String joinStatus = lobbyPlayerApi.joinLobby("PlayerName123", "76d8ad8e-c23b-4d79-8320-12ff150ce34e");
                 // Test Supabase connection
                 statusMessage = testConnectionApi.testSupabaseConnection();
 
