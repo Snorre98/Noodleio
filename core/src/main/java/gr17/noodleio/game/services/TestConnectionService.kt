@@ -24,5 +24,4 @@ class TestConnectionService (private val environmentConfig: EnvironmentConfig) {
         }
     }
 
-
 }

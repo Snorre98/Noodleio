@@ -1,7 +1,4 @@
-// In core/src/main/kotlin/gr17/noodleio/game/services/ServiceManager.kt
 package gr17.noodleio.game.services
-
-
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import io.github.jan.supabase.createSupabaseClient
