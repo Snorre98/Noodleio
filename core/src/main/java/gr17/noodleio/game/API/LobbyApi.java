@@ -77,6 +77,7 @@ public class LobbyApi {
     }
 
     /**
+     * ONLY FOR TESTING!
      * Creates a new lobby with a random player name for testing
      * @return Status message including lobby and player details if successful
      */
