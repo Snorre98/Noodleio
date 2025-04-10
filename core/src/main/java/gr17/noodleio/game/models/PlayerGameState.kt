@@ -37,6 +37,6 @@ create table public."PlayerGameState" (
 
 /*
 ---- DB function (maybe client) ----
-if (PlayerGameState.x_pos and PlayerGameState.y_pos) == (Food.x_pos and Food.y_pos)
+if (PlayerGameState.x_pos and PlayerGameState.y_pos) == (Food.x_pos and Food.y_pos) --> PlayerGamestate.score ++
 when PlayerGameState.score === GameSession(session_id).winning_score the GameSession.ended_at should be set to now
  */
