@@ -13,11 +13,26 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
-import kotlinx.serialization.encodeToString
-import kotlinx.serialization.json.Json
 import kotlin.coroutines.CoroutineContext
 
+
+/*
+*  This is only used for proof of concept!
+* */
 class RealtimeCursorService(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
+    interface CursorPositionListener {
+        fun onCursorPositionReceived(position: CursorPosition)
+    }
+    private val listeners = mutableListOf<CursorPositionListener>()
+
+    fun addListener(listener: CursorPositionListener) {
+        listeners.add(listener)
+    }
+
+    fun removeListener(listener: CursorPositionListener) {
+        listeners.remove(listener)
+    }
+
 
     // Create service manager with our config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
@@ -84,11 +99,16 @@ class RealtimeCursorService(private val environmentConfig: EnvironmentConfig) : 
                 val broadcastFlow = channel.broadcastFlow<CursorPosition>(event = "cursor_position")
 
                 broadcastFlow.onEach { position ->
-                    // You can handle received cursor positions here
-                    println("Received cursor position: ${position.x}, ${position.y} from ${position.userId}")
+                    // Skip our own cursor positions
+                    if (position.userId != userId) {
+                        println("Received cursor position: ${position.x}, ${position.y} from ${position.userId}")
 
-                    // Forward to our own flow for external subscribers
-                    cursorPositionFlow.emit(position)
+                        // Forward to our own flow for external subscribers
+                        cursorPositionFlow.emit(position)
+
+                        // Notify listeners
+                        listeners.forEach { it.onCursorPositionReceived(position) }
+                    }
                 }.launchIn(this)
 
                 println("Successfully set up cursor position listener")

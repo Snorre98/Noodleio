@@ -2,11 +2,22 @@ package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.services.RealtimeCursorService;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import gr17.noodleio.game.models.CursorPosition;
+import gr17.noodleio.game.services.RealtimeCursorService.CursorPositionListener;
 
+/*
+*  This is only used for proof of concept!
+* */
 public class CursorRealtimeApi {
     private final RealtimeCursorService cursorService;
     private String statusMessage = "Initializing...";
     private boolean isConnected = false;
+
+    // Use ConcurrentHashMap for thread safety
+    private final Map<String, CursorPosition> cursorPositions = new ConcurrentHashMap<>();
 
     // Default channel name
     private static final String DEFAULT_CHANNEL = "cursor-test-channel";
@@ -16,6 +27,19 @@ public class CursorRealtimeApi {
 
     public CursorRealtimeApi(EnvironmentConfig environmentConfig) {
         this.cursorService = new RealtimeCursorService(environmentConfig);
+
+        // Add listener for cursor positions
+        this.cursorService.addListener(new CursorPositionListener() {
+            @Override
+            public void onCursorPositionReceived(CursorPosition position) {
+                // Update the position in our map
+                cursorPositions.put(position.getUserId(), position);
+            }
+        });
+    }
+
+    public Map<String, CursorPosition> getCursorPositions() {
+        return cursorPositions;
     }
 
     /**
@@ -123,3 +147,5 @@ public class CursorRealtimeApi {
         return cursorService;
     }
 }
+
+

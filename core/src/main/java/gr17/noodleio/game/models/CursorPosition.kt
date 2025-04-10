@@ -2,7 +2,9 @@ package gr17.noodleio.game.models
 
 import kotlinx.serialization.Serializable
 
-/* Only used for testing */
+/*
+*  This is only used for proof of concept!
+* */
 @Serializable
 data class CursorPosition(
     val userId: String,
@@ -10,3 +12,11 @@ data class CursorPosition(
     val y: Float,
     val timestamp: Long = System.currentTimeMillis()
 )
+/*
+{
+    // Add getters for Java interoperability
+    fun getUserId(): String = userId
+    fun getX(): Float = x
+    fun getY(): Float = y
+    fun getTimestamp(): Long = timestamp
+}*/
