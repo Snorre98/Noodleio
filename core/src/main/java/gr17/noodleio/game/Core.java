@@ -153,7 +153,6 @@ public class Core extends ApplicationAdapter {
                 lobbyApi = new LobbyApi(environmentConfig);
                 lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
 
-                String joinStatus = lobbyPlayerApi.joinLobby("PlayerName123", "76d8ad8e-c23b-4d79-8320-12ff150ce34e");
                 // Test Supabase connection
                 statusMessage = testConnectionApi.testSupabaseConnection();
 
@@ -163,18 +162,40 @@ public class Core extends ApplicationAdapter {
                 // Fetch and display the leaderboard
                 leaderboardMessage = leaderboardApi.fetchLeaderboard(5);
 
-                // Create a new lobby with a test player as owner
+                // Create a new lobby for testing
                 String combinedMessage = lobbyApi.createTestLobbyWithOwner();
+                String createdLobbyId = "";
 
-                // Split the combined message into lobby and player parts if it contains a separator
+                // Extract the lobby ID
+                if (combinedMessage.contains("Lobby created with ID: ")) {
+                    int startIndex = combinedMessage.indexOf("Lobby created with ID: ") + "Lobby created with ID: ".length();
+                    int endIndex = combinedMessage.contains(" | ") ?
+                        combinedMessage.indexOf(" | ") :
+                        combinedMessage.length();
+                    createdLobbyId = combinedMessage.substring(startIndex, endIndex);
+                }
+
+                // Display the lobby creation message
                 if (combinedMessage.contains(" | ")) {
                     String[] parts = combinedMessage.split(" \\| ");
                     lobbyMessage = parts[0];
                     playerMessage = parts[1];
                 } else {
-                    // Otherwise just use the whole message for lobby
                     lobbyMessage = combinedMessage;
                 }
+
+                try {
+                    String joinStatus = lobbyPlayerApi.joinLobby("Snorre-3", "bb117d5a-8c7c-4194-a743-11330bf88abd");
+                    playerMessage += "\nJoined: " + joinStatus;
+
+                    // Also get a list of players in the lobby to verify
+                    String playersList = lobbyPlayerApi.getPlayersInLobby(createdLobbyId);
+                    System.out.println(playersList);
+                } catch (Exception e) {
+                    System.err.println("Error joining lobby: " + e.getMessage());
+                    e.printStackTrace();
+                }
+
 
                 // Connect to the cursor channel
                 cursorStatusMessage = cursorRealtimeApi.connect("cursor-room-" + System.currentTimeMillis() % 1000);
@@ -300,5 +321,10 @@ public class Core extends ApplicationAdapter {
     // Accessor for LobbyApi
     public LobbyApi getLobbyApi() {
         return lobbyApi;
+    }
+
+    // Accessor for LobbyPlayerApi
+    public LobbyPlayerApi getLobbyPlayerApi() {
+        return lobbyPlayerApi;
     }
 }
