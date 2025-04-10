@@ -12,11 +12,3 @@ data class CursorPosition(
     val y: Float,
     val timestamp: Long = System.currentTimeMillis()
 )
-/*
-{
-    // Add getters for Java interoperability
-    fun getUserId(): String = userId
-    fun getX(): Float = x
-    fun getY(): Float = y
-    fun getTimestamp(): Long = timestamp
-}*/
