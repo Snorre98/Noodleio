@@ -7,7 +7,7 @@ import kotlinx.serialization.Serializable
 * When the object is created successfully the FK is added to the related Lobby
 * */
 @Serializable
-data class SessionPlayers (
+data class SessionPlayer (
     val id: String, // UUID FK reference in SessionLobby
     val player: String, // Unique constrain
     val created_at: String? = null
