@@ -11,6 +11,7 @@ import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.API.LeaderboardApi;
+import gr17.noodleio.game.API.LobbyApi;
 import gr17.noodleio.game.API.TestConnectionApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
 
@@ -41,6 +42,8 @@ public class Core extends ApplicationAdapter {
     private String statusMessage = "Initializing...";
     private String leaderboardMessage = "";
     private String addEntryMessage = "";
+    private String lobbyMessage = "";
+    private String playerMessage = "";
 
     // Environment config
     private final EnvironmentConfig environmentConfig;
@@ -48,6 +51,7 @@ public class Core extends ApplicationAdapter {
     // API classes
     private TestConnectionApi testConnectionApi;
     private LeaderboardApi leaderboardApi;
+    private LobbyApi lobbyApi;
 
     // Add these as fields in your Core class
     private CursorRealtimeApi cursorRealtimeApi;
@@ -143,6 +147,7 @@ public class Core extends ApplicationAdapter {
                 testConnectionApi = new TestConnectionApi(environmentConfig);
                 leaderboardApi = new LeaderboardApi(environmentConfig);
                 cursorRealtimeApi = new CursorRealtimeApi(environmentConfig);
+                lobbyApi = new LobbyApi(environmentConfig);
 
                 // Test Supabase connection
                 statusMessage = testConnectionApi.testSupabaseConnection();
@@ -152,6 +157,19 @@ public class Core extends ApplicationAdapter {
 
                 // Fetch and display the leaderboard
                 leaderboardMessage = leaderboardApi.fetchLeaderboard(5);
+
+                // Create a new lobby with a test player as owner
+                String combinedMessage = lobbyApi.createTestLobbyWithOwner();
+
+                // Split the combined message into lobby and player parts if it contains a separator
+                if (combinedMessage.contains(" | ")) {
+                    String[] parts = combinedMessage.split(" \\| ");
+                    lobbyMessage = parts[0];
+                    playerMessage = parts[1];
+                } else {
+                    // Otherwise just use the whole message for lobby
+                    lobbyMessage = combinedMessage;
+                }
 
                 // Connect to the cursor channel
                 cursorStatusMessage = cursorRealtimeApi.connect("cursor-room-" + System.currentTimeMillis() % 1000);
@@ -190,8 +208,14 @@ public class Core extends ApplicationAdapter {
         // Display leaderboard data
         testText.draw(batch, leaderboardMessage, x, y - 90);
 
+        // Display lobby creation status
+        testText.draw(batch, lobbyMessage, x, y - 150);
+
+        // Display player status
+        testText.draw(batch, playerMessage, x, y - 180);
+
         // Display cursor status
-        testText.draw(batch, cursorStatusMessage, x, y - 120);
+        testText.draw(batch, cursorStatusMessage, x, y - 210);
 
         // Draw other users' cursors
         drawOtherCursors();
@@ -266,5 +290,10 @@ public class Core extends ApplicationAdapter {
     // Accessor for LeaderboardApi
     public LeaderboardApi getLeaderboardApi() {
         return leaderboardApi;
+    }
+
+    // Accessor for LobbyApi
+    public LobbyApi getLobbyApi() {
+        return lobbyApi;
     }
 }
