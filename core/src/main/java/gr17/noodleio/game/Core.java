@@ -1,6 +1,7 @@
 package gr17.noodleio.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
+import com.badlogic.gdx.InputMultiplexer;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -14,6 +15,9 @@ import gr17.noodleio.game.API.TestConnectionApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
 
 import gr17.noodleio.game.API.CursorRealtimeApi;
+
+import gr17.noodleio.game.ui.components.InputFieldRenderer;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.InputAdapter;
 import com.badlogic.gdx.InputProcessor;
@@ -25,6 +29,10 @@ import com.badlogic.gdx.math.Vector3;
 public class Core extends ApplicationAdapter {
     private SpriteBatch batch;
     private Texture image;
+
+    private InputFieldRenderer inputRenderer;
+
+    private InputMultiplexer inputMultiplexer;
 
     private OrthographicCamera camera;
     private Viewport viewport;
@@ -77,12 +85,17 @@ public class Core extends ApplicationAdapter {
                 // Send cursor position over realtime API
                 cursorRealtimeApi.sendCursorPosition(worldX, worldY);
 
-                return true;
+                return false; // Return false to allow stage to also process the event
             }
         };
 
-        // Add our input processor to the multiplexer
-        Gdx.input.setInputProcessor(inputProcessor);
+        // Create and configure the input multiplexer
+        inputMultiplexer = new InputMultiplexer();
+        inputMultiplexer.addProcessor(inputRenderer.getStage()); // Stage first
+        inputMultiplexer.addProcessor(inputProcessor); // Then cursor processor
+
+        // Set the multiplexer as the input processor
+        Gdx.input.setInputProcessor(inputMultiplexer);
     }
 
     @Override
@@ -104,6 +117,11 @@ public class Core extends ApplicationAdapter {
         pixmap.fill();
         cursorTexture = new Texture(pixmap);
         pixmap.dispose();
+
+        inputRenderer = new InputFieldRenderer("Enter text here...", "Type something...");
+        inputMultiplexer = new InputMultiplexer();
+        inputMultiplexer.addProcessor(inputRenderer.getStage()); // Use the stage from the renderer
+        Gdx.input.setInputProcessor(inputRenderer.getStage()); // Set stage as input processor by default
 
         // Try to load the cursor texture, but only if it exists
         try {
@@ -179,6 +197,8 @@ public class Core extends ApplicationAdapter {
         drawOtherCursors();
 
         batch.end();
+
+        inputRenderer.render(Gdx.graphics.getDeltaTime());
     }
 
     private void drawOtherCursors() {
@@ -221,6 +241,7 @@ public class Core extends ApplicationAdapter {
     @Override
     public void resize(int width, int height) {
         viewport.update(width, height, true);
+        inputRenderer.resize(width, height);
     }
 
     @Override
@@ -229,6 +250,7 @@ public class Core extends ApplicationAdapter {
         image.dispose();
         testText.dispose();
         cursorTexture.dispose();
+        inputRenderer.dispose();
 
         // Disconnect from the cursor channel
         if (cursorRealtimeApi != null && cursorRealtimeApi.isConnected()) {
