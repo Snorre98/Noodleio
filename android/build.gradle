@@ -11,6 +11,11 @@ apply plugin: 'kotlin-android'
 android {
   namespace "gr17.noodleio.game"
   compileSdk 34
+
+  buildFeatures {
+    buildConfig true
+  }
+
   sourceSets {
     main {
       manifest.srcFile 'AndroidManifest.xml'
@@ -32,11 +37,34 @@ android {
   }
   defaultConfig {
     applicationId 'gr17.noodleio.game'
-    minSdkVersion 19
+    //minSdkVersion 19
+    minSdkVersion 21
     targetSdkVersion 34
     versionCode 1
     versionName "1.0"
     multiDexEnabled true
+
+    // Set value part with fallbacks
+    Properties properties = new Properties()
+    try {
+      properties.load(project.rootProject.file("local.properties").newDataInputStream())
+      println("Successfully loaded local.properties")
+    } catch (Exception e) {
+      println("Failed to load local.properties: " + e.getMessage())
+      // Continue with empty properties
+    }
+
+    // Get properties with fallbacks to empty strings
+    def supabaseUrl = properties.getProperty("SUPABASE_URL", "")
+    def supabaseAnonKey = properties.getProperty("SUPABASE_ANON_KEY", "")
+
+    // Log what we found (or didn't find)
+    println("SUPABASE_URL: " + (supabaseUrl ? "found" : "not found"))
+    println("SUPABASE_ANON_KEY: " + (supabaseAnonKey ? "found" : "not found"))
+
+    // Set the build config fields with the values or empty strings
+    buildConfigField("String", "SUPABASE_URL", "\"${supabaseUrl}\"")
+    buildConfigField("String", "SUPABASE_ANON_KEY", "\"${supabaseAnonKey}\"")
   }
   compileOptions {
     sourceCompatibility JavaVersion.VERSION_17
@@ -51,6 +79,7 @@ android {
   }
 
   kotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  buildToolsVersion '34.0.0'
 }
 
 repositories {
@@ -61,6 +90,14 @@ repositories {
 configurations { natives }
 
 dependencies {
+  // If using supabase-kt 3.0.0 and above, you need to use Ktor version 3.0.0-rc-1 or later.
+  // https://supabase.com/docs/reference/kotlin/installing
+  // - https://ktor.io/docs/client-engines.html#limitations
+
+  // implementation 'io.ktor:ktor-client-[engine]:KTOR_VERSION'
+  implementation 'io.ktor:ktor-client-cio:3.0.0-rc-1'
+
+  /*libgdx*/
   coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
   implementation "com.badlogicgames.gdx-controllers:gdx-controllers-android:$gdxControllersVersion"
   implementation "com.badlogicgames.gdx:gdx-backend-android:$gdxVersion"

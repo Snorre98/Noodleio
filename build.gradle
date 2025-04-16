@@ -11,6 +11,8 @@ buildscript {
   dependencies {
     classpath 'com.android.tools.build:gradle:8.7.3'
     classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion"
+    // for serialization
+    classpath "org.jetbrains.kotlin:kotlin-serialization:$kotlinVersion"
 
   }
 }
@@ -31,6 +33,11 @@ allprojects {
 configure(subprojects - project(':android')) {
   apply plugin: 'java-library'
   apply plugin: 'kotlin'
+
+  //for serialization
+  // apply plugin: 'kotlin-parcelize'  // Optional, if you need Parcelable implementations
+  apply plugin: 'kotlinx-serialization'  // Add this line
+
   sourceCompatibility = 17
   targetCompatibility = 17
 
@@ -57,8 +64,8 @@ configure(subprojects - project(':android')) {
   compileJava {
     options.incremental = true
   }
-  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
-  compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_1_8)
+  compileKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+  compileTestKotlin.compilerOptions.jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
 
 }
 
@@ -90,5 +97,13 @@ subprojects {
   }
 
 }
+
+ext {
+  // Make Supabase credentials available to all projects
+  // First check system environment, then gradle.properties
+  supabaseUrl = System.getenv('SUPABASE_URL') ?: project.findProperty('supabaseUrl')
+  supabaseKey = System.getenv('SUPABASE_KEY') ?: project.findProperty('supabaseKey')
+}
+
 
 eclipse.project.name = 'noodleio' + '-parent'

@@ -7,6 +7,22 @@ java {
 eclipse.project.name = appName + '-core'
 
 dependencies {
+  // Supabase deps https://supabase.com/docs/reference/kotlin/introduction?queryGroups=build-file&build-file=groovy
+
+  implementation platform("io.github.jan-tennert.supabase:bom:3.1.4")
+  implementation 'io.github.jan-tennert.supabase:postgrest-kt'
+  implementation 'io.github.jan-tennert.supabase:auth-kt'
+  implementation 'io.github.jan-tennert.supabase:realtime-kt'
+
+  // https://github.com/supabase-community/supabase-kt/tree/master/Functions
+  implementation("io.github.jan-tennert.supabase:functions-kt:3.1.4")
+
+  // https://github.com/supabase-community/supabase-kt/tree/master/Storage
+  implementation("io.github.jan-tennert.supabase:storage-kt:3.1.4")
+
+  // add kotlinx-serialization
+  implementation "org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.0"
+
   api "com.badlogicgames.ashley:ashley:$ashleyVersion"
   api "com.badlogicgames.box2dlights:box2dlights:$box2dlightsVersion"
   api "com.badlogicgames.gdx-controllers:gdx-controllers-core:$gdxControllersVersion"
