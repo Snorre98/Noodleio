@@ -12,6 +12,8 @@ public class LobbyPlayerApi {
     private String playersListMessage = "";
     private String leaveLobbyMessage = "";
 
+    private String startGameSessionMessage = "";
+
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
         this.lobbyPlayerViews = new LobbyPlayerViews(environmentConfig);
     }
@@ -139,6 +141,62 @@ public class LobbyPlayerApi {
             e.printStackTrace();
             return errorMsg;
         }
+    }
+
+
+    /**
+     * Starts a game session for a lobby
+     * Only the lobby owner can start a game session
+     *
+     * @param playerId The ID of the player trying to start the game (must be lobby owner)
+     * @param lobbyId The ID of the lobby to create a game session for
+     * @param winningScore Score required to win (default: 50)
+     * @param mapLength Map length (default: 1080)
+     * @param mapHeight Map height (default: 1080)
+     * @return Status message indicating success or failure
+     */
+    public String startGameSession(String playerId, String lobbyId, int winningScore, int mapLength, int mapHeight) {
+        try {
+            kotlin.Pair<gr17.noodleio.game.models.GameSession, String> result =
+                lobbyPlayerViews.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
+
+            gr17.noodleio.game.models.GameSession gameSession = result.getFirst();
+            String message = result.getSecond();
+
+            if (gameSession != null) {
+                startGameSessionMessage = "Game session started successfully: " +
+                    "ID: " + gameSession.getId() +
+                    ", Lobby: " + gameSession.getLobby_id() +
+                    ", Winning Score: " + gameSession.getWinning_score();
+                return startGameSessionMessage;
+            } else {
+                startGameSessionMessage = "Failed to start game session: " + message;
+                return startGameSessionMessage;
+            }
+        } catch (Exception e) {
+            startGameSessionMessage = "Error starting game session: " + e.getMessage();
+            e.printStackTrace();
+            return startGameSessionMessage;
+        }
+    }
+
+    /**
+     * Starts a game session for a lobby with default settings
+     *
+     * @param playerId The ID of the player trying to start the game (must be lobby owner)
+     * @param lobbyId The ID of the lobby to create a game session for
+     * @return Status message indicating success or failure
+     */
+    public String startGameSession(String playerId, String lobbyId) {
+        return startGameSession(playerId, lobbyId, 50, 1080, 1080);
+    }
+
+    /**
+     * Gets the most recent start game session message
+     * @return The start game session status message
+     */
+    public String getStartGameSessionMessage() {
+        return startGameSessionMessage;
     }
 
     /**

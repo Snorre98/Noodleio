@@ -1,12 +1,15 @@
 package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
+import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
@@ -266,6 +269,98 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                 println("DEBUG LobbyPlayerService: Error getting player by ID: ${e.message}")
                 e.printStackTrace()
                 return@runBlocking null
+            }
+        }
+    }
+
+
+    /**
+     * Data class for the response from start_game_session RPC function
+     */
+    @Serializable
+    data class StartGameSessionResponse(
+        @SerialName("session_id") val sessionId: String?,
+        @SerialName("lobby_id") val lobbyId: String,
+        @SerialName("success") val success: Boolean,
+        @SerialName("message") val message: String
+    )
+
+    /**
+     * Allows a player to start a game session for their lobby
+     * Only the lobby owner can start a game session
+     *
+     * @param playerId The ID of the player trying to start the game (must be lobby owner)
+     * @param lobbyId The ID of the lobby to create a game session for
+     * @param winningScore Score required to win (default: 50)
+     * @param mapLength Map length (default: 1080)
+     * @param mapHeight Map height (default: 1080)
+     * @return The created GameSession or null if there was an error
+     */
+    fun startGameSession(
+        playerId: String,
+        lobbyId: String,
+        winningScore: Int = 50,
+        mapLength: Int = 1080,
+        mapHeight: Int = 1080
+    ): Pair<GameSession?, String> {
+        return runBlocking {
+            try {
+                // Build the parameters for the RPC call
+                val params = buildJsonObject {
+                    put("p_player_id", playerId)
+                    put("p_lobby_id", lobbyId)
+                    put("p_winning_score", winningScore)
+                    put("p_map_length", mapLength)
+                    put("p_map_height", mapHeight)
+                }
+
+                // Call the database function using RPC
+                val response = serviceManager.db.rpc("start_game_session", params)
+                val results = response.decodeList<StartGameSessionResponse>()
+
+                if (results.isEmpty()) {
+                    return@runBlocking Pair(null, "Failed to start game session: No response from server")
+                }
+
+                val result = results.first()
+
+                if (!result.success || result.sessionId == null) {
+                    println("Failed to start game session: ${result.message}")
+                    return@runBlocking Pair(null, result.message)
+                }
+
+                // Try to fetch the newly created game session
+                try {
+                    val gameSessionResponse = serviceManager.db
+                        .from("GameSession")
+                        .select {
+                            filter {
+                                eq("id", result.sessionId)
+                            }
+                        }
+
+                    val gameSession = gameSessionResponse.decodeSingle<GameSession>()
+                    println("Successfully started game session with ID: ${gameSession.id}")
+                    return@runBlocking Pair(gameSession, "Game session started successfully")
+                } catch (e: Exception) {
+                    println("Game session was created but couldn't be retrieved: ${e.message}")
+
+                    // Create a basic session object with the ID we know
+                    val gameSession = GameSession(
+                        id = result.sessionId,
+                        lobby_id = result.lobbyId,
+                        winning_score = winningScore,
+                        map_length = mapLength,
+                        map_height = mapHeight,
+                        started_at = kotlinx.datetime.Clock.System.now()
+                    )
+
+                    return@runBlocking Pair(gameSession, "Game session started successfully, but details couldn't be retrieved")
+                }
+            } catch (e: Exception) {
+                println("Error starting game session: ${e.message}")
+                e.printStackTrace()
+                return@runBlocking Pair(null, "Error starting game session: ${e.message}")
             }
         }
     }

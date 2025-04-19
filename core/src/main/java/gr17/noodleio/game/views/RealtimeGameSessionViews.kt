@@ -6,7 +6,7 @@ Use database functions for:
 - Lobby creation with automatic player creation
 - Game session start validation
 - Food deletion when eaten
-- Score updates with game end detection
+- Score updates with end_game detection
 
 
 Move to application code:

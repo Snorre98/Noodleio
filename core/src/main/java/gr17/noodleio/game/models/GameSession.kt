@@ -39,11 +39,20 @@ create table public."GameSession" (
 
 /*
 ---- DB function ----
-randomly place Food within the map over time as long as the game is in progress
+none for now
 */
+
+/*
+local GameSession state includes:
+- GameSession fields
+- all player states for the lobby
+* */
 
 
 /*
 ------ Client function ----
+it's important that lobby_id is kept locally so that we quickly can get
+
+randomly place Food within the map over time as long as the game is in progress
 if the game has a "ended_at" value players should be moved to the lobby screen
 */
