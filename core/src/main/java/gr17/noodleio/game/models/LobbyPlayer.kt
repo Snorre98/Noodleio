@@ -56,6 +56,8 @@ DECLARE
   v_lobby_owner UUID;
   v_new_session_id UUID;
   v_existing_session UUID;
+  v_mid_x DOUBLE PRECISION;
+  v_mid_y DOUBLE PRECISION;
 BEGIN
   -- Check if the lobby exists
   IF NOT EXISTS (SELECT 1 FROM "Lobby" WHERE id = p_lobby_id) THEN
@@ -96,6 +98,10 @@ BEGIN
     RETURN;
   END IF;
 
+  -- Calculate the middle of the map
+  v_mid_x := p_map_length / 2.0;
+  v_mid_y := p_map_height / 2.0;
+
   -- Start a transaction to ensure all operations complete or none do
   BEGIN
     -- Create a new game session
@@ -111,7 +117,7 @@ BEGIN
       p_map_height
     ) RETURNING id INTO v_new_session_id;
 
-    -- For each player in the lobby, create a player game state
+    -- For each player in the lobby, create a player game state with position in the middle of the map
     INSERT INTO "PlayerGameState" (
       session_id,
       player_id,
@@ -122,8 +128,8 @@ BEGIN
     SELECT
       v_new_session_id,
       lp.id,
-      0.0, -- Starting x position
-      0.0, -- Starting y position
+      v_mid_x, -- Starting x position (middle of map)
+      v_mid_y, -- Starting y position (middle of map)
       0    -- Starting score
     FROM "LobbyPlayer" lp
     WHERE lp.lobby_id = p_lobby_id;
