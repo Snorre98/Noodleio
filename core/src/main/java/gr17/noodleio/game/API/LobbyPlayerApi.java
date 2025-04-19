@@ -2,18 +2,18 @@ package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.views.LobbyPlayerService;
+import gr17.noodleio.game.views.LobbyPlayerViews;
 
 import java.util.List;
 
 public class LobbyPlayerApi {
-    private final LobbyPlayerService lobbyPlayerService;
+    private final LobbyPlayerViews lobbyPlayerViews;
     private String joinLobbyMessage = "";
     private String playersListMessage = "";
     private String leaveLobbyMessage = "";
 
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
-        this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
+        this.lobbyPlayerViews = new LobbyPlayerViews(environmentConfig);
     }
 
     /**
@@ -24,7 +24,7 @@ public class LobbyPlayerApi {
      */
     public String joinLobby(String playerName, String lobbyId) {
         try {
-            LobbyPlayer player = lobbyPlayerService.joinLobby(playerName, lobbyId);
+            LobbyPlayer player = lobbyPlayerViews.joinLobby(playerName, lobbyId);
 
             if (player != null) {
                 joinLobbyMessage = "Player '" + playerName + "' successfully joined lobby with ID: " + lobbyId +
@@ -66,7 +66,7 @@ public class LobbyPlayerApi {
      */
     public String getPlayersInLobby(String lobbyId) {
         try {
-            List<LobbyPlayer> players = lobbyPlayerService.getPlayersInLobby(lobbyId);
+            List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
 
             StringBuilder sb = new StringBuilder("Players in lobby " + lobbyId + ":\n");
 
@@ -101,7 +101,7 @@ public class LobbyPlayerApi {
      */
     public String leaveLobby(String playerId) {
         try {
-            boolean success = lobbyPlayerService.leaveLobby(playerId);
+            boolean success = lobbyPlayerViews.leaveLobby(playerId);
 
             if (success) {
                 leaveLobbyMessage = "Player successfully left the lobby";
@@ -124,7 +124,7 @@ public class LobbyPlayerApi {
      */
     public String getPlayerById(String playerId) {
         try {
-            LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
+            LobbyPlayer player = lobbyPlayerViews.getPlayerById(playerId);
 
             if (player != null) {
                 return "Player found: " + player.getPlayer_name() +
@@ -169,7 +169,7 @@ public class LobbyPlayerApi {
      * Gets the underlying LobbyPlayerService
      * @return The LobbyPlayerService instance
      */
-    public LobbyPlayerService getLobbyPlayerService() {
-        return lobbyPlayerService;
+    public LobbyPlayerViews getLobbyPlayerService() {
+        return lobbyPlayerViews;
     }
 }

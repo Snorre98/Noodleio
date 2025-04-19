@@ -13,7 +13,7 @@ import java.util.UUID
  * For a player to join a lobby
  * The player joins the lobby by posting the lobby key (the lobby UUID)
  * */
-class LobbyPlayerService(private val environmentConfig: EnvironmentConfig) {
+class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)

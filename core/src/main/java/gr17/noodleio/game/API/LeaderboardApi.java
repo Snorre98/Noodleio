@@ -5,15 +5,15 @@ import java.util.Random;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LeaderboardEntry;
-import gr17.noodleio.game.views.LeaderboardView;
+import gr17.noodleio.game.views.LeaderboardViews;
 
 public class LeaderboardApi {
-    private final LeaderboardView leaderboardView;
+    private final LeaderboardViews leaderboardView;
     private String leaderboardMessage = "";
     private String addEntryMessage = "";
 
     public LeaderboardApi(EnvironmentConfig environmentConfig) {
-        this.leaderboardView = new LeaderboardView(environmentConfig);
+        this.leaderboardView = new LeaderboardViews(environmentConfig);
     }
 
     /**
@@ -99,7 +99,7 @@ public class LeaderboardApi {
      * Gets the underlying LeaderboardService
      * @return The LeaderboardService instance
      */
-    public LeaderboardView getLeaderboardService() {
+    public LeaderboardViews getLeaderboardService() {
         return leaderboardView;
     }
 }

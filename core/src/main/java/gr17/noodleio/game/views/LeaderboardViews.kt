@@ -8,7 +8,7 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class LeaderboardView(private val environmentConfig: EnvironmentConfig) {
+class LeaderboardViews(private val environmentConfig: EnvironmentConfig) {
 
 
     // Custom JSON serializer with more lenient settings

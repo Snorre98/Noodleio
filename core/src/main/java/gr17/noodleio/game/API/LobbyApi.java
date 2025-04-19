@@ -3,17 +3,17 @@ package gr17.noodleio.game.API;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.Lobby;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.views.LobbyService;
+import gr17.noodleio.game.views.LobbyViews;
 import kotlin.Pair;
 
 public class LobbyApi {
-    private final LobbyService lobbyService;
+    private final LobbyViews lobbyViews;
     private String createLobbyMessage = "";
     private String getLobbyMessage = "";
     private String playerMessage = "";
 
     public LobbyApi(EnvironmentConfig environmentConfig) {
-        this.lobbyService = new LobbyService(environmentConfig);
+        this.lobbyViews = new LobbyViews(environmentConfig);
     }
 
     /**
@@ -31,7 +31,7 @@ public class LobbyApi {
      */
     public String createLobby(int maxPlayers) {
         try {
-            Lobby newLobby = lobbyService.createLobby(maxPlayers);
+            Lobby newLobby = lobbyViews.createLobby(maxPlayers);
 
             if (newLobby != null) {
                 createLobbyMessage = "Lobby created successfully! Lobby ID: " + newLobby.getId();
@@ -55,7 +55,7 @@ public class LobbyApi {
      */
     public String createLobbyWithOwner(String playerName, int maxPlayers) {
         try {
-            Pair<Lobby, LobbyPlayer> result = lobbyService.createLobbyWithOwner(playerName, maxPlayers);
+            Pair<Lobby, LobbyPlayer> result = lobbyViews.createLobbyWithOwner(playerName, maxPlayers);
 
             if (result != null) {
                 Lobby lobby = result.getFirst();
@@ -101,7 +101,7 @@ public class LobbyApi {
      */
     public String getLobbyById(String lobbyId) {
         try {
-            Lobby lobby = lobbyService.getLobbyById(lobbyId);
+            Lobby lobby = lobbyViews.getLobbyById(lobbyId);
 
             if (lobby != null) {
                 getLobbyMessage = "Lobby found: ID=" + lobby.getId() +
@@ -152,7 +152,7 @@ public class LobbyApi {
      * Gets the underlying LobbyService
      * @return The LobbyService instance
      */
-    public LobbyService getLobbyService() {
-        return lobbyService;
+    public LobbyViews getLobbyService() {
+        return lobbyViews;
     }
 }

@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
  * Enables a player to create a lobby and start a game.
  * When a player creates a lobby it is also added to LobbyPlayer
  * */
-class LobbyService(private val environmentConfig: EnvironmentConfig) {
+class LobbyViews(private val environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
