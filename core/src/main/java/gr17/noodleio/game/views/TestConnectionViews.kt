@@ -2,7 +2,7 @@ package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 
-class TestConnectionService (private val environmentConfig: EnvironmentConfig) {
+class TestConnectionViews (private val environmentConfig: EnvironmentConfig) {
 
     // Create our own service manager with custom serializer
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
