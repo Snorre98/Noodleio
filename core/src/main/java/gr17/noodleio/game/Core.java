@@ -12,6 +12,7 @@ import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.states.GameStateManager;
 import gr17.noodleio.game.states.MenuState;
+import gr17.noodleio.game.states.PlayState;
 import gr17.noodleio.game.util.ResourceManager;
 
 
@@ -56,7 +57,8 @@ public class Core extends ApplicationAdapter {
 
         // Initialize game state manager and set initial state
         gsm = GameStateManager.getInstance();
-        gsm.push(new MenuState(gsm));
+        gsm.push(new PlayState(gsm));
+        //gsm.push(new MenuState(gsm));
 
 
 //        ResourceManager rm = new ResourceManager();
