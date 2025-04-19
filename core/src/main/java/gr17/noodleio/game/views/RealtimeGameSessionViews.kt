@@ -18,7 +18,7 @@ Move to application code:
 * */
 
 
-class RealtimeGameSessionService {
+class RealtimeGameSessionViews {
 
     // https://supabase.com/docs/guides/realtime/postgres-changes?queryGroups=language&language=kotlin
 
