@@ -17,7 +17,7 @@ Move to application code:
 - Food spawning (as a scheduled function)
 * */
 
-class RealtimePlayerGameStateService {
+class RealtimePlayerGameStateViews {
 
     // https://supabase.com/docs/guides/realtime/postgres-changes?queryGroups=language&language=kotlin
 
