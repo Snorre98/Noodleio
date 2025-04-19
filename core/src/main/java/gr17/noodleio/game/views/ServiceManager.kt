@@ -1,4 +1,4 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import io.github.jan.supabase.createSupabaseClient

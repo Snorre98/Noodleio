@@ -1,9 +1,8 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
-import io.github.jan.supabase.postgrest.from
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.buildJsonObject

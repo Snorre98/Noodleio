@@ -3,7 +3,7 @@ package gr17.noodleio.game.API;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.Lobby;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.services.LobbyService;
+import gr17.noodleio.game.views.LobbyService;
 import kotlin.Pair;
 
 public class LobbyApi {

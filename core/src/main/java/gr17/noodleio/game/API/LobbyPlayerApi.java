@@ -2,10 +2,9 @@ package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.services.LobbyPlayerService;
+import gr17.noodleio.game.views.LobbyPlayerService;
 
 import java.util.List;
-import java.util.ArrayList;
 
 public class LobbyPlayerApi {
     private final LobbyPlayerService lobbyPlayerService;

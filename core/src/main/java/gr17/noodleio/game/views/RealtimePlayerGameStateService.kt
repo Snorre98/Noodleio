@@ -1,4 +1,6 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
+
+
 
 /*
 Use database functions for:
@@ -13,16 +15,12 @@ Move to application code:
 
 - Collision detection () => set wasEaten
 - Food spawning (as a scheduled function)
-
-*
 * */
 
-
-class RealtimeGameSessionService {
+class RealtimePlayerGameStateService {
 
     // https://supabase.com/docs/guides/realtime/postgres-changes?queryGroups=language&language=kotlin
 
     // see the proof of concept CursorRealtimeCursorService
-
 
 }

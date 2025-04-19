@@ -1,18 +1,14 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.LeaderboardEntry
-import io.github.jan.supabase.createSupabaseClient
-import io.github.jan.supabase.postgrest.from
 import io.github.jan.supabase.postgrest.query.Order
-import io.github.jan.supabase.postgrest.Postgrest
-import io.github.jan.supabase.serializer.KotlinXSerializer
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class LeaderboardService(private val environmentConfig: EnvironmentConfig) {
+class LeaderboardView(private val environmentConfig: EnvironmentConfig) {
 
 
     // Custom JSON serializer with more lenient settings

@@ -5,15 +5,15 @@ import java.util.Random;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LeaderboardEntry;
-import gr17.noodleio.game.services.LeaderboardService;
+import gr17.noodleio.game.views.LeaderboardView;
 
 public class LeaderboardApi {
-    private final LeaderboardService leaderboardService;
+    private final LeaderboardView leaderboardView;
     private String leaderboardMessage = "";
     private String addEntryMessage = "";
 
     public LeaderboardApi(EnvironmentConfig environmentConfig) {
-        this.leaderboardService = new LeaderboardService(environmentConfig);
+        this.leaderboardView = new LeaderboardView(environmentConfig);
     }
 
     /**
@@ -30,7 +30,7 @@ public class LeaderboardApi {
             String playerName = "TestPlayer_" + System.currentTimeMillis();
 
             // Add the entry
-            LeaderboardEntry newEntry = leaderboardService.addLeaderboardEntry(playerName, randomScore, null);
+            LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntry(playerName, randomScore, null);
 
             if (newEntry != null) {
                 addEntryMessage = "Added new entry: " + playerName + " with score " + randomScore;
@@ -54,7 +54,7 @@ public class LeaderboardApi {
     public String fetchLeaderboard(long limit) {
         try {
             // Get top entries
-            List<LeaderboardEntry> topEntries = leaderboardService.getTopLeaderboard(limit);
+            List<LeaderboardEntry> topEntries = leaderboardView.getTopLeaderboard(limit);
 
             // Format a message to display
             StringBuilder sb = new StringBuilder("Top " + limit + " Players:\n");
@@ -99,7 +99,7 @@ public class LeaderboardApi {
      * Gets the underlying LeaderboardService
      * @return The LeaderboardService instance
      */
-    public LeaderboardService getLeaderboardService() {
-        return leaderboardService;
+    public LeaderboardView getLeaderboardService() {
+        return leaderboardView;
     }
 }

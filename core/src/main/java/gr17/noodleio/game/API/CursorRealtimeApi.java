@@ -1,12 +1,12 @@
 package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.services.RealtimeCursorService;
-import java.util.HashMap;
+import gr17.noodleio.game.views.RealtimeCursorService;
+
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import gr17.noodleio.game.models.CursorPosition;
-import gr17.noodleio.game.services.RealtimeCursorService.CursorPositionListener;
+import gr17.noodleio.game.views.RealtimeCursorService.CursorPositionListener;
 
 /*
 *  This is only used for proof of concept!
