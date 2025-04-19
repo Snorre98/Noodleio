@@ -1,15 +1,15 @@
 package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.views.RealtimePlayerGameStateViews;
+import gr17.noodleio.game.views.PlayerGameStateViews;
 import kotlin.Pair;
 
 public class PlayerGameStateApi {
-    private final RealtimePlayerGameStateViews playerGameStateViews;
+    private final PlayerGameStateViews playerGameStateViews;
     private String movePlayerMessage = "";
 
     public PlayerGameStateApi(EnvironmentConfig environmentConfig) {
-        this.playerGameStateViews = new RealtimePlayerGameStateViews(environmentConfig);
+        this.playerGameStateViews = new PlayerGameStateViews(environmentConfig);
     }
 
     /**
@@ -132,7 +132,7 @@ public class PlayerGameStateApi {
      * Gets the underlying RealtimePlayerGameStateViews
      * @return The RealtimePlayerGameStateViews instance
      */
-    public RealtimePlayerGameStateViews getPlayerGameStateViews() {
+    public PlayerGameStateViews getPlayerGameStateViews() {
         return playerGameStateViews;
     }
 }
