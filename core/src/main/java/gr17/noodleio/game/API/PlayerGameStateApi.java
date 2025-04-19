@@ -40,6 +40,87 @@ public class PlayerGameStateApi {
     }
 
     /**
+     * Moves a player down by one position unit
+     * @param playerId The ID of the player to move
+     * @param sessionId The ID of the game session
+     * @return Status message indicating success or failure
+     */
+    public String movePlayerDown(String playerId, String sessionId) {
+        try {
+            Pair<Boolean, String> result = playerGameStateViews.movePlayerDown(playerId, sessionId);
+
+            boolean success = result.getFirst();
+            String message = result.getSecond();
+
+            if (success) {
+                movePlayerMessage = "Player movement successful: " + message;
+            } else {
+                movePlayerMessage = "Player movement failed: " + message;
+            }
+
+            return movePlayerMessage;
+        } catch (Exception e) {
+            movePlayerMessage = "Error moving player: " + e.getMessage();
+            e.printStackTrace();
+            return movePlayerMessage;
+        }
+    }
+
+    /**
+     * Moves a player left by one position unit
+     * @param playerId The ID of the player to move
+     * @param sessionId The ID of the game session
+     * @return Status message indicating success or failure
+     */
+    public String movePlayerLeft(String playerId, String sessionId) {
+        try {
+            Pair<Boolean, String> result = playerGameStateViews.movePlayerLeft(playerId, sessionId);
+
+            boolean success = result.getFirst();
+            String message = result.getSecond();
+
+            if (success) {
+                movePlayerMessage = "Player movement successful: " + message;
+            } else {
+                movePlayerMessage = "Player movement failed: " + message;
+            }
+
+            return movePlayerMessage;
+        } catch (Exception e) {
+            movePlayerMessage = "Error moving player: " + e.getMessage();
+            e.printStackTrace();
+            return movePlayerMessage;
+        }
+    }
+
+    /**
+     * Moves a player right by one position unit
+     * @param playerId The ID of the player to move
+     * @param sessionId The ID of the game session
+     * @return Status message indicating success or failure
+     */
+    public String movePlayerRight(String playerId, String sessionId) {
+        try {
+            Pair<Boolean, String> result = playerGameStateViews.movePlayerRight(playerId, sessionId);
+
+            boolean success = result.getFirst();
+            String message = result.getSecond();
+
+            if (success) {
+                movePlayerMessage = "Player movement successful: " + message;
+            } else {
+                movePlayerMessage = "Player movement failed: " + message;
+            }
+
+            return movePlayerMessage;
+        } catch (Exception e) {
+            movePlayerMessage = "Error moving player: " + e.getMessage();
+            e.printStackTrace();
+            return movePlayerMessage;
+        }
+    }
+
+    /**
      * Gets the most recent move player message
      * @return The move player status message
      */
