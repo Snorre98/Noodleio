@@ -24,7 +24,7 @@ create table public."LobbyPlayer" (
   joined_at timestamp with time zone not null default now(),
   constraint LobbyPlayer_pkey primary key (id),
   constraint LobbyPlayer_player_name_key unique (player_name),
-  constraint LobbyPlayer_lobby_id_fkey foreign KEY (lobby_id) references "Lobby" (id)
+  constraint LobbyPlayer_lobby_id_fkey foreign KEY (lobby_id) references "Lobby" (id) on delete CASCADE
 ) TABLESPACE pg_default;
 
 * */

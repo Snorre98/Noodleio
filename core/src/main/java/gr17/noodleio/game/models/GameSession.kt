@@ -32,15 +32,12 @@ create table public."GameSession" (
   ended_at timestamp with time zone null,
   constraint GameSession_pkey primary key (id),
   constraint GameSession_lobby_id_key unique (lobby_id),
-  constraint GameSession_lobby_id_fkey foreign KEY (lobby_id) references "Lobby" (id)
+  constraint GameSession_lobby_id_fkey foreign KEY (lobby_id) references "Lobby" (id) on delete CASCADE
 ) TABLESPACE pg_default;
 * */
 
 
-/*
----- DB function ----
-none for now
-*/
+
 
 /*
 local GameSession state includes:
@@ -51,8 +48,14 @@ local GameSession state includes:
 
 /*
 ------ Client function ----
-it's important that lobby_id is kept locally so that we quickly can get
+It's important that lobby_id is kept locally so that we quickly can get game session and players by lobby_id.
 
-randomly place Food within the map over time as long as the game is in progress
-if the game has a "ended_at" value players should be moved to the lobby screen
+Spawn enough food for all players to be able to win. If two players: spawn 2*50 food in random places.
+- the random food generation is done on the lobby_owner client, and the data is pushed to the database by calling a db function spawn_food
+    - this happens when the lobby_owner creates a game session
+*/
+
+/*
+---- DB function ----
+spawn_food takes a list of random food positions
 */

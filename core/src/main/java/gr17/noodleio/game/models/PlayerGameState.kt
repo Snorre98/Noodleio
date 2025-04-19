@@ -18,9 +18,12 @@ data class PlayerGameState (
     val y_pos: Float,
     val score: Int,
 )
+
 /*
----- DB function (maybe client) ----
-if (PlayerGameState.x_pos and PlayerGameState.y_pos) == (Food.x_pos and Food.y_pos) --> PlayerGamestate.score ++
+---- DB function ----
+
+fn: if (PlayerGameState.x_pos and PlayerGameState.y_pos) == (Food.x_pos and Food.y_pos) --> PlayerGamestate.score ++
+
 when PlayerGameState.score === GameSession(session_id).winning_score the GameSession.ended_at should be set to now
  */
 
@@ -35,7 +38,7 @@ create table public."PlayerGameState" (
   constraint PlayerGameState_pkey primary key (id),
   constraint PlayerGameState_player_id_key unique (player_id),
   constraint PlayerGameState_session_id_key unique (session_id),
-  constraint PlayerGameState_player_id_fkey foreign KEY (player_id) references "LobbyPlayer" (id) on delete RESTRICT,
+  constraint PlayerGameState_player_id_fkey foreign KEY (player_id) references "LobbyPlayer" (id) on delete CASCADE,
   constraint PlayerGameState_session_id_fkey foreign KEY (session_id) references "GameSession" (id) on delete CASCADE
 ) TABLESPACE pg_default;
 * */
