@@ -12,6 +12,7 @@ import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.API.LobbyApi;
 import gr17.noodleio.game.API.LobbyPlayerApi;
+import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.states.GameStateManager;
@@ -51,12 +52,13 @@ public class Core extends ApplicationAdapter {
 
     // Test variables
     private BitmapFont font;
-    private String testStatus = "Press SPACE to test database functions";
+    private String testStatus = "Press SPACE to test database functions\nPress W to move player up";
     private String lobbyId = null;
     private String playerId = null;
     private String sessionId = null;
     private LobbyApi lobbyApi;
     private LobbyPlayerApi lobbyPlayerApi;
+    private PlayerGameStateApi playerGameStateApi;
 
     @Override
     public void create() {
@@ -77,6 +79,7 @@ public class Core extends ApplicationAdapter {
         if (environmentConfig != null) {
             lobbyApi = new LobbyApi(environmentConfig);
             lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
+            playerGameStateApi = new PlayerGameStateApi(environmentConfig);
         }
     }
 
@@ -104,6 +107,25 @@ public class Core extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
             runDatabaseTest();
         }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+            movePlayerUp();
+        }
+    }
+
+    private void movePlayerUp() {
+        if (environmentConfig == null) {
+            testStatus = "Cannot test: Environment config is null";
+            return;
+        }
+
+        if (sessionId == null || playerId == null) {
+            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+            return;
+        }
+
+        String result = playerGameStateApi.movePlayerUp(playerId, sessionId);
+        testStatus = "Move up result: " + result;
     }
 
     private void runDatabaseTest() {
