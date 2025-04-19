@@ -19,7 +19,7 @@ import kotlin.coroutines.CoroutineContext
 /*
 *  This is only used for proof of concept!
 * */
-class RealtimeCursorService(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
+class RealtimeCursorViews(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
     interface CursorPositionListener {
         fun onCursorPositionReceived(position: CursorPosition)
     }
