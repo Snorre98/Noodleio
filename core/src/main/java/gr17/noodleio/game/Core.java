@@ -111,6 +111,18 @@ public class Core extends ApplicationAdapter {
         if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
             movePlayerUp();
         }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+            movePlayerDown();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+            movePlayerLeft();
+        }
+
+        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+            movePlayerRight();
+        }
     }
 
     private void movePlayerUp() {
@@ -125,6 +137,51 @@ public class Core extends ApplicationAdapter {
         }
 
         String result = playerGameStateApi.movePlayerUp(playerId, sessionId);
+        testStatus = "Move up result: " + result;
+    }
+
+    private void movePlayerDown() {
+        if (environmentConfig == null) {
+            testStatus = "Cannot test: Environment config is null";
+            return;
+        }
+
+        if (sessionId == null || playerId == null) {
+            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+            return;
+        }
+
+        String result = playerGameStateApi.movePlayerDown(playerId, sessionId);
+        testStatus = "Move up result: " + result;
+    }
+
+    private void movePlayerLeft() {
+        if (environmentConfig == null) {
+            testStatus = "Cannot test: Environment config is null";
+            return;
+        }
+
+        if (sessionId == null || playerId == null) {
+            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+            return;
+        }
+
+        String result = playerGameStateApi.movePlayerLeft(playerId, sessionId);
+        testStatus = "Move up result: " + result;
+    }
+
+    private void movePlayerRight() {
+        if (environmentConfig == null) {
+            testStatus = "Cannot test: Environment config is null";
+            return;
+        }
+
+        if (sessionId == null || playerId == null) {
+            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+            return;
+        }
+
+        String result = playerGameStateApi.movePlayerRight(playerId, sessionId);
         testStatus = "Move up result: " + result;
     }
 
