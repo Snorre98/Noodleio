@@ -1,12 +1,9 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
-import io.github.jan.supabase.postgrest.from
-import io.github.jan.supabase.postgrest.rpc
 import kotlinx.coroutines.runBlocking
-import kotlinx.datetime.Instant
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.buildJsonObject
@@ -19,7 +16,7 @@ import java.time.format.DateTimeFormatter
  * Enables a player to create a lobby and start a game.
  * When a player creates a lobby it is also added to LobbyPlayer
  * */
-class LobbyService(private val environmentConfig: EnvironmentConfig) {
+class LobbyViews(private val environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)

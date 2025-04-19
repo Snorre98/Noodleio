@@ -1,7 +1,7 @@
 package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.services.ServiceManager;
+import gr17.noodleio.game.views.ServiceManager;
 
 public class TestConnectionApi {
     private final ServiceManager serviceManager;
