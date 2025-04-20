@@ -182,34 +182,23 @@ public class LeaderboardState extends State {
     }
 
     private void setupLeaderboardDisplay() {
-        // Add header row
-        Label playerHeader = new Label("PLAYER", skin);
-        Label scoreHeader = new Label("SCORE", skin);
+        Label header = new Label("PLAYER : SCORE", skin);
+        table.add(header).padBottom(10);
+        table.row();
 
-        table.add(playerHeader).padRight(40).expandX().left();
-        table.add(scoreHeader).right();
-        table.row().padBottom(10);
-
-        // Create placeholder labels for leaderboard entries
         leaderboardLabels = new Label[TOP_ENTRIES];
         for (int i = 0; i < TOP_ENTRIES; i++) {
-            Label playerLabel = new Label("Loading...", skin);
-            Label scoreLabel = new Label("--", skin);
-
-            //table.add(rankLabel).padRight(20).right();
-            table.add(playerLabel).padRight(40).expandX().left();
-            table.add(scoreLabel).right();
-            table.row().padBottom(15);
-
-            // Store player name label for updating later
-            leaderboardLabels[i] = playerLabel;
+            Label entryLabel = new Label("---", skin);
+            table.add(entryLabel).padBottom(10).left();
+            table.row();
+            leaderboardLabels[i] = entryLabel;
         }
 
-        // Add status label
         statusLabel = new Label("Loading leaderboard...", skin);
-        table.add(statusLabel).colspan(3).padTop(20).padBottom(20);
+        table.add(statusLabel).padTop(20);
         table.row();
     }
+
 
     private void setupButtons() {
         // Add back button
@@ -241,50 +230,32 @@ public class LeaderboardState extends State {
     }
 
     private void updateLeaderboardDisplay(String leaderboardText) {
-        try {
-            // Get the entries from the API
-            List<LeaderboardEntry> entries = leaderboardApi.getLeaderboardService().getTopLeaderboard(TOP_ENTRIES);
+        String[] lines = leaderboardText.split("\\r?\\n");
 
-            if (entries == null || entries.isEmpty()) {
-                statusLabel.setText("No leaderboard entries found");
-                return;
+        int labelIndex = 0;
+        for (String line : lines) {
+            if (labelIndex >= TOP_ENTRIES) break;
+
+            // Skip non-data lines like the header
+            if (!line.contains(":")) continue;
+
+            if (leaderboardLabels[labelIndex] != null) {
+                leaderboardLabels[labelIndex].setText(line.trim());
             }
 
-            // Update the labels with actual leaderboard data
-            for (int i = 0; i < TOP_ENTRIES; i++) {
-                if (i < entries.size()) {
-                    LeaderboardEntry entry = entries.get(i);
-
-                    // Update player name
-                    if (leaderboardLabels[i] != null) {
-                        leaderboardLabels[i].setText(entry.getPlayer_name());
-                    }
-
-                    // Update score - find the score label (should be 2 cells to the right of the player name)
-                    Actor scoreActor = table.getChildren().get(table.getChildren().indexOf(leaderboardLabels[i], true) + 2);
-                    if (scoreActor instanceof Label) {
-                        ((Label) scoreActor).setText(String.valueOf(entry.getScore()));
-                    }
-                } else {
-                    // No entry for this position
-                    if (leaderboardLabels[i] != null) {
-                        leaderboardLabels[i].setText("---");
-                    }
-
-                    // Clear score
-                    Actor scoreActor = table.getChildren().get(table.getChildren().indexOf(leaderboardLabels[i], true) + 2);
-                    if (scoreActor instanceof Label) {
-                        ((Label) scoreActor).setText("---");
-                    }
-                }
-            }
-
-            statusLabel.setText("Leaderboard loaded successfully");
-        } catch (Exception e) {
-            Gdx.app.error("LeaderboardState", "Error updating leaderboard display", e);
-            statusLabel.setText("Error displaying leaderboard: " + e.getMessage());
+            labelIndex++;
         }
+
+        // Fill remaining labels with placeholders if any
+        for (int i = labelIndex; i < TOP_ENTRIES; i++) {
+            if (leaderboardLabels[i] != null) {
+                leaderboardLabels[i].setText("---");
+            }
+        }
+
+        statusLabel.setText("Leaderboard loaded successfully");
     }
+
 
     @Override
     protected void handleInput() {
