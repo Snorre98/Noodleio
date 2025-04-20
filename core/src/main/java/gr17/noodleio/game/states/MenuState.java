@@ -18,15 +18,28 @@ import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import gr17.noodleio.game.API.LobbyApi;
+import gr17.noodleio.game.config.Config;
+import gr17.noodleio.game.config.EnvironmentConfig;
+
 public class MenuState extends State {
     private Stage stage;
     private Skin skin;
     private Table table;
     private TextField playerNameField;
     private TextField lobbyCodeField;
+    private Label statusLabel;
+
+    // API for lobby operations
+    private LobbyApi lobbyApi;
+    private String lobbyId;
+    private String playerId;
 
     public MenuState(GameStateManager gsm) {
         super(gsm);
+
+        // Initialize environment config and APIs
+        initializeApis();
 
         // Create stage with viewport that matches our camera
         stage = new Stage(new FitViewport(800, 480, cam));
@@ -42,6 +55,30 @@ public class MenuState extends State {
 
         setupTitle();
         setupButtons(gsm);
+    }
+
+    private void initializeApis() {
+        // Create environment config directly using Config
+        EnvironmentConfig environmentConfig = new EnvironmentConfig() {
+            @Override
+            public String getSupabaseUrl() {
+                return Config.getSupabaseUrl();
+            }
+
+            @Override
+            public String getSupabaseKey() {
+                return Config.getSupabaseKey();
+            }
+        };
+
+        // Log the config values
+        Gdx.app.log("MenuState", "Initializing APIs with Supabase URL: " + environmentConfig.getSupabaseUrl());
+        Gdx.app.log("MenuState", "API Key starts with: " +
+            (environmentConfig.getSupabaseKey().length() > 5 ?
+                environmentConfig.getSupabaseKey().substring(0, 10) + "..." : "invalid"));
+
+        // Initialize lobby API
+        lobbyApi = new LobbyApi(environmentConfig);
     }
 
     private void setupSkin() {
@@ -87,6 +124,13 @@ public class MenuState extends State {
             textButtonStyle.down = skin.newDrawable("default-round-down");
             textButtonStyle.checked = skin.newDrawable("default-round-down");
             skin.add("default", textButtonStyle);
+
+            // Create Label style
+            Label.LabelStyle labelStyle = new Label.LabelStyle();
+            labelStyle.font = skin.getFont("default-font");
+            labelStyle.fontColor = Color.WHITE;
+            skin.add("default", labelStyle);
+
         } catch (Exception e) {
             Gdx.app.error("MenuState", "Error loading skin resources", e);
 
@@ -97,6 +141,10 @@ public class MenuState extends State {
             TextButton.TextButtonStyle fallbackStyle = new TextButton.TextButtonStyle();
             fallbackStyle.font = skin.getFont("default-font");
             skin.add("default", fallbackStyle);
+
+            Label.LabelStyle labelStyle = new Label.LabelStyle();
+            labelStyle.font = skin.getFont("default-font");
+            skin.add("default", labelStyle);
         }
     }
 
@@ -137,10 +185,11 @@ public class MenuState extends State {
             table.row();
         }
     }
+
     private void setupButtons(GameStateManager gsm) {
         // Create buttons
-        TextButton createGameButton = new TextButton("Create Game", skin);
-        TextButton joinGameButton = new TextButton("Join Game", skin);
+        TextButton createGameButton = new TextButton("Create lobby", skin);
+        TextButton joinGameButton = new TextButton("Join lobby", skin);
         TextButton leaderboardButton = new TextButton("Leaderboard", skin);
 
         // Create and add player name input field
@@ -148,17 +197,26 @@ public class MenuState extends State {
         playerNameField.setMessageText("Enter player alias...");
         table.add(playerNameField).width(200).height(40).padBottom(20);
         table.row();
+
         // Add buttons to table with spacing
         table.add(createGameButton).padBottom(20).width(200).height(50);
         table.row();
+
         // Create and add lobby code input field
         lobbyCodeField = new TextField("", createTextFieldStyle());
         lobbyCodeField.setMessageText("Enter lobby code...");
         table.add(lobbyCodeField).width(200).height(40).padBottom(20);
         table.row();
+
         table.add(joinGameButton).padBottom(20).width(200).height(50);
         table.row();
+
         table.add(leaderboardButton).width(200).height(50);
+        table.row();
+
+        // Add status label for feedback
+        statusLabel = new Label("", skin);
+        table.add(statusLabel).padTop(30).width(300);
 
         // Add button listeners
         createGameButton.addListener(new ChangeListener() {
@@ -166,13 +224,11 @@ public class MenuState extends State {
             public void changed(ChangeEvent event, Actor actor) {
                 String playerName = playerNameField.getText();
                 if (playerName != null && !playerName.trim().isEmpty()) {
-                    // Use the player name to create a new lobby
-                    System.out.println("Creating game with player name: " + playerName);
-                    gsm.set(new LobbyState(gsm));
-                    dispose(); // Dispose resources when changing states
+                    // Create a new lobby with the player as owner
+                    createLobbyWithOwner(playerName, gsm);
                 } else {
                     // Show error or prompt user to enter a name
-                    System.out.println("Please enter a player name");
+                    statusLabel.setText("Please enter a player name");
                 }
             }
         });
@@ -181,15 +237,21 @@ public class MenuState extends State {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 String lobbyCode = lobbyCodeField.getText();
-                if (lobbyCode != null && !lobbyCode.trim().isEmpty()) {
-                    // Use the lobby code to join an existing lobby
-                    System.out.println("Joining game with lobby code: " + lobbyCode);
-                    gsm.set(new LobbyState(gsm));
-                    dispose(); // Dispose resources when changing states
-                } else {
-                    // Show error or prompt user to enter a lobby code
-                    System.out.println("Please enter a lobby code");
+                String playerName = playerNameField.getText();
+
+                if (lobbyCode == null || lobbyCode.trim().isEmpty()) {
+                    statusLabel.setText("Please enter a lobby code");
+                    return;
                 }
+
+                if (playerName == null || playerName.trim().isEmpty()) {
+                    statusLabel.setText("Please enter a player name");
+                    return;
+                }
+
+                // TODO: Implement joining a lobby
+                statusLabel.setText("Joining lobby: " + lobbyCode);
+                // joinLobby(playerName, lobbyCode, gsm);
             }
         });
 
@@ -197,10 +259,56 @@ public class MenuState extends State {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 // TODO: Implement leaderboard state
+                statusLabel.setText("Leaderboard not implemented yet");
                 // gsm.set(new LeaderboardState(gsm));
                 // dispose(); // Uncomment when implemented
             }
         });
+    }
+
+    private void createLobbyWithOwner(String playerName, GameStateManager gsm) {
+        try {
+            statusLabel.setText("Creating lobby...");
+            Gdx.app.log("MenuState", "Attempting to create lobby with player: " + playerName);
+
+            // Create lobby with owner
+            String result = lobbyApi.createLobbyWithOwner(playerName, 4);
+            Gdx.app.log("MenuState", "Lobby creation result: " + result);
+
+            // Parse response to extract IDs
+            if (result.contains("Lobby created with ID:")) {
+                String[] parts = result.split("\\|");
+                if (parts.length > 0) {
+                    String lobbyPart = parts[0].trim();
+                    lobbyId = lobbyPart.substring(lobbyPart.lastIndexOf(":") + 1).trim();
+                    Gdx.app.log("MenuState", "Extracted lobby ID: " + lobbyId);
+                }
+
+                if (parts.length > 1) {
+                    String playerPart = parts[1].trim();
+                    String idSection = playerPart.substring(playerPart.lastIndexOf(":") + 1).trim();
+                    playerId = idSection;
+                    Gdx.app.log("MenuState", "Extracted player ID: " + playerId);
+                }
+
+                // Transition to lobby state with the created lobby data
+                LobbyState lobbyState = new LobbyState(gsm);
+                lobbyState.setLobbyData(lobbyId, playerId, playerName);
+                gsm.set(lobbyState);
+
+                // No need to dispose here as gsm.set() will handle it
+            } else {
+                // Show error message
+                statusLabel.setText("Failed to create lobby: " + result);
+                Gdx.app.error("MenuState", "Failed to create lobby: " + result);
+            }
+        } catch (Exception e) {
+            Gdx.app.error("MenuState", "Error creating lobby with owner", e);
+            if (e.getCause() != null) {
+                Gdx.app.error("MenuState", "Caused by: " + e.getCause().getMessage());
+            }
+            statusLabel.setText("Error: " + e.getMessage());
+        }
     }
 
     @Override
