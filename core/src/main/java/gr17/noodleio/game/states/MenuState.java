@@ -262,10 +262,8 @@ public class MenuState extends State {
         leaderboardButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                // TODO: Implement leaderboard state
-                statusLabel.setText("Leaderboard not implemented yet");
-                // gsm.set(new LeaderboardState(gsm));
-                // dispose(); // Uncomment when implemented
+                Gdx.app.log("MenuState", "Leaderboard button clicked, transitioning to LeaderboardState");
+                gsm.set(new LeaderboardState(gsm));
             }
         });
     }
