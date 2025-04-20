@@ -52,13 +52,13 @@ public class Core extends ApplicationAdapter {
 
     // Test variables
     private BitmapFont font;
-    private String testStatus = "Press SPACE to test database functions\nPress W to move player up";
-    private String lobbyId = null;
-    private String playerId = null;
-    private String sessionId = null;
-    private LobbyApi lobbyApi;
-    private LobbyPlayerApi lobbyPlayerApi;
-    private PlayerGameStateApi playerGameStateApi;
+//    private String testStatus = "Press SPACE to test database functions\nPress W to move player up";
+//    private String lobbyId = null;
+//    private String playerId = null;
+//    private String sessionId = null;
+//    private LobbyApi lobbyApi;
+//    private LobbyPlayerApi lobbyPlayerApi;
+//    private PlayerGameStateApi playerGameStateApi;
 
     @Override
     public void create() {
@@ -76,11 +76,11 @@ public class Core extends ApplicationAdapter {
         gsm.push(new MenuState(gsm));
 
         // Initialize API classes for testing
-        if (environmentConfig != null) {
-            lobbyApi = new LobbyApi(environmentConfig);
-            lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
-            playerGameStateApi = new PlayerGameStateApi(environmentConfig);
-        }
+//        if (environmentConfig != null) {
+//            lobbyApi = new LobbyApi(environmentConfig);
+//            lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
+//            playerGameStateApi = new PlayerGameStateApi(environmentConfig);
+//        }
     }
 
     @Override
@@ -89,7 +89,7 @@ public class Core extends ApplicationAdapter {
         ScreenUtils.clear(0.15f, 0.15f, 0.2f, 1f);
 
         // Handle test input
-        handleTestInput();
+        // handleTestInput();
 
         camera.update();
         batch.setProjectionMatrix(camera.combined);
@@ -99,141 +99,141 @@ public class Core extends ApplicationAdapter {
 
         // Draw test status
         batch.begin();
-        font.draw(batch, testStatus, 20, viewport.getWorldHeight() - 20);
+  //      font.draw(batch, testStatus, 20, viewport.getWorldHeight() - 20);
         batch.end();
     }
 
-    private void handleTestInput() {
-        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
-            runDatabaseTest();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
-            movePlayerUp();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
-            movePlayerDown();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
-            movePlayerLeft();
-        }
-
-        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
-            movePlayerRight();
-        }
-    }
-
-    private void movePlayerUp() {
-        if (environmentConfig == null) {
-            testStatus = "Cannot test: Environment config is null";
-            return;
-        }
-
-        if (sessionId == null || playerId == null) {
-            testStatus = "Cannot move player: Create a game session first (press SPACE)";
-            return;
-        }
-
-        String result = playerGameStateApi.movePlayerUp(playerId, sessionId);
-        testStatus = "Move up result: " + result;
-    }
-
-    private void movePlayerDown() {
-        if (environmentConfig == null) {
-            testStatus = "Cannot test: Environment config is null";
-            return;
-        }
-
-        if (sessionId == null || playerId == null) {
-            testStatus = "Cannot move player: Create a game session first (press SPACE)";
-            return;
-        }
-
-        String result = playerGameStateApi.movePlayerDown(playerId, sessionId);
-        testStatus = "Move up result: " + result;
-    }
-
-    private void movePlayerLeft() {
-        if (environmentConfig == null) {
-            testStatus = "Cannot test: Environment config is null";
-            return;
-        }
-
-        if (sessionId == null || playerId == null) {
-            testStatus = "Cannot move player: Create a game session first (press SPACE)";
-            return;
-        }
-
-        String result = playerGameStateApi.movePlayerLeft(playerId, sessionId);
-        testStatus = "Move up result: " + result;
-    }
-
-    private void movePlayerRight() {
-        if (environmentConfig == null) {
-            testStatus = "Cannot test: Environment config is null";
-            return;
-        }
-
-        if (sessionId == null || playerId == null) {
-            testStatus = "Cannot move player: Create a game session first (press SPACE)";
-            return;
-        }
-
-        String result = playerGameStateApi.movePlayerRight(playerId, sessionId);
-        testStatus = "Move up result: " + result;
-    }
-
-    private void runDatabaseTest() {
-        if (environmentConfig == null) {
-            testStatus = "Cannot test: Environment config is null";
-            return;
-        }
-
-        // Test step 1: Create a lobby with owner
-        String playerName = "TestPlayer_" + System.currentTimeMillis();
-        String result = lobbyApi.createLobbyWithOwner(playerName, 4);
-        testStatus = "Step 1: " + result;
-
-        // Parse the response to get lobby ID and player ID
-        try {
-            // Extract lobby ID from message like "Lobby created with ID: abc123 | Player 'name' added as owner with ID: xyz789"
-            if (result.contains("Lobby created with ID:")) {
-                String[] parts = result.split("\\|");
-                if (parts.length > 0) {
-                    String lobbyPart = parts[0].trim();
-                    lobbyId = lobbyPart.substring(lobbyPart.lastIndexOf(":") + 1).trim();
-                }
-
-                if (parts.length > 1) {
-                    String playerPart = parts[1].trim();
-                    String idSection = playerPart.substring(playerPart.lastIndexOf(":") + 1).trim();
-                    playerId = idSection;
-                }
-
-                testStatus += "\nExtracted Lobby ID: " + lobbyId + ", Player ID: " + playerId;
-
-                // Test step 2: Start a game session
-                if (lobbyId != null && playerId != null) {
-                    String gameResult = lobbyPlayerApi.startGameSession(playerId, lobbyId);
-                    testStatus += "\nStep 2: " + gameResult;
-
-                    // Extract session ID if available
-                    if (gameResult.contains("ID:")) {
-                        int idIndex = gameResult.indexOf("ID:") + 3;
-                        int commaIndex = gameResult.indexOf(",", idIndex);
-                        if (commaIndex > idIndex) {
-                            sessionId = gameResult.substring(idIndex, commaIndex).trim();
-                            testStatus += "\nExtracted Session ID: " + sessionId;
-                        }
-                    }
-                }
-            }
-        } catch (Exception e) {
-            testStatus += "\nError parsing response: " + e.getMessage();
-        }
-    }
+//    private void handleTestInput() {
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.SPACE)) {
+//            runDatabaseTest();
+//        }
+//
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.W)) {
+//            movePlayerUp();
+//        }
+//
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.S)) {
+//            movePlayerDown();
+//        }
+//
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.A)) {
+//            movePlayerLeft();
+//        }
+//
+//        if (Gdx.input.isKeyJustPressed(Input.Keys.D)) {
+//            movePlayerRight();
+//        }
+//    }
+//
+//    private void movePlayerUp() {
+//        if (environmentConfig == null) {
+//            testStatus = "Cannot test: Environment config is null";
+//            return;
+//        }
+//
+//        if (sessionId == null || playerId == null) {
+//            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+//            return;
+//        }
+//
+//        String result = playerGameStateApi.movePlayerUp(playerId, sessionId);
+//        testStatus = "Move up result: " + result;
+//    }
+//
+//    private void movePlayerDown() {
+//        if (environmentConfig == null) {
+//            testStatus = "Cannot test: Environment config is null";
+//            return;
+//        }
+//
+//        if (sessionId == null || playerId == null) {
+//            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+//            return;
+//        }
+//
+//        String result = playerGameStateApi.movePlayerDown(playerId, sessionId);
+//        testStatus = "Move up result: " + result;
+//    }
+//
+//    private void movePlayerLeft() {
+//        if (environmentConfig == null) {
+//            testStatus = "Cannot test: Environment config is null";
+//            return;
+//        }
+//
+//        if (sessionId == null || playerId == null) {
+//            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+//            return;
+//        }
+//
+//        String result = playerGameStateApi.movePlayerLeft(playerId, sessionId);
+//        testStatus = "Move up result: " + result;
+//    }
+//
+//    private void movePlayerRight() {
+//        if (environmentConfig == null) {
+//            testStatus = "Cannot test: Environment config is null";
+//            return;
+//        }
+//
+//        if (sessionId == null || playerId == null) {
+//            testStatus = "Cannot move player: Create a game session first (press SPACE)";
+//            return;
+//        }
+//
+//        String result = playerGameStateApi.movePlayerRight(playerId, sessionId);
+//        testStatus = "Move up result: " + result;
+//    }
+//
+//    private void runDatabaseTest() {
+//        if (environmentConfig == null) {
+//            testStatus = "Cannot test: Environment config is null";
+//            return;
+//        }
+//
+//        // Test step 1: Create a lobby with owner
+//        String playerName = "TestPlayer_" + System.currentTimeMillis();
+//        String result = lobbyApi.createLobbyWithOwner(playerName, 4);
+//        testStatus = "Step 1: " + result;
+//
+//        // Parse the response to get lobby ID and player ID
+//        try {
+//            // Extract lobby ID from message like "Lobby created with ID: abc123 | Player 'name' added as owner with ID: xyz789"
+//            if (result.contains("Lobby created with ID:")) {
+//                String[] parts = result.split("\\|");
+//                if (parts.length > 0) {
+//                    String lobbyPart = parts[0].trim();
+//                    lobbyId = lobbyPart.substring(lobbyPart.lastIndexOf(":") + 1).trim();
+//                }
+//
+//                if (parts.length > 1) {
+//                    String playerPart = parts[1].trim();
+//                    String idSection = playerPart.substring(playerPart.lastIndexOf(":") + 1).trim();
+//                    playerId = idSection;
+//                }
+//
+//                testStatus += "\nExtracted Lobby ID: " + lobbyId + ", Player ID: " + playerId;
+//
+//                // Test step 2: Start a game session
+//                if (lobbyId != null && playerId != null) {
+//                    String gameResult = lobbyPlayerApi.startGameSession(playerId, lobbyId);
+//                    testStatus += "\nStep 2: " + gameResult;
+//
+//                    // Extract session ID if available
+//                    if (gameResult.contains("ID:")) {
+//                        int idIndex = gameResult.indexOf("ID:") + 3;
+//                        int commaIndex = gameResult.indexOf(",", idIndex);
+//                        if (commaIndex > idIndex) {
+//                            sessionId = gameResult.substring(idIndex, commaIndex).trim();
+//                            testStatus += "\nExtracted Session ID: " + sessionId;
+//                        }
+//                    }
+//                }
+//            }
+//        } catch (Exception e) {
+//            testStatus += "\nError parsing response: " + e.getMessage();
+//        }
+//    }
 
     @Override
     public void resize(int width, int height) {
