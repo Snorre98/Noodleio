@@ -37,6 +37,7 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
             }
         }
     }
+
     // Coroutine context for async operations
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + SupervisorJob()
@@ -158,6 +159,7 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                 playerStates[state.player_id] = state
                 // Notify listeners
                 listeners.forEach { it.onPlayerStateChanged(state) }
+                println("Initial player state: player_id=${state.player_id}, x=${state.x_pos}, y=${state.y_pos}")
             }
 
             println("Initial game state loaded")
@@ -201,27 +203,44 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                                 // Notify listeners
                                 listeners.forEach { it.onPlayerStateChanged(playerState) }
 
-                                println("New player joined: ${playerState.player_id}")
+                                println("New player joined: ${playerState.player_id}, position: (${playerState.x_pos}, ${playerState.y_pos})")
                             }
 
                             is PostgresAction.Update -> {
                                 val record = action.record
+
+                                // Extract player_id from record
+                                val playerId = record["player_id"].toString()
+
+                                // Extract x and y positions, using correct type conversion
+                                val xPos = extractNumberValue(record["x_pos"]).toFloat()
+                                val yPos = extractNumberValue(record["y_pos"]).toFloat()
+                                val score = extractNumberValue(record["score"]).toInt()
+
                                 val playerState = PlayerGameState(
                                     id = record["id"].toString(),
                                     session_id = record["session_id"].toString(),
-                                    player_id = record["player_id"].toString(),
-                                    x_pos = extractNumberValue(record["x_pos"]).toFloat(),
-                                    y_pos = extractNumberValue(record["y_pos"]).toFloat(),
-                                    score = extractNumberValue(record["score"]).toInt()
+                                    player_id = playerId,
+                                    x_pos = xPos,
+                                    y_pos = yPos,
+                                    score = score
                                 )
 
+                                // Get previous state for logging
+                                val prevState = playerStates[playerId]
+
                                 // Update local state
-                                playerStates[playerState.player_id] = playerState
+                                playerStates[playerId] = playerState
 
                                 // Notify listeners
                                 listeners.forEach { it.onPlayerStateChanged(playerState) }
 
-                                println("Player state updated: ${playerState.player_id}")
+                                // Log the update with previous and new position
+                                if (prevState != null) {
+                                    println("Player state updated: $playerId, position: (${prevState.x_pos}, ${prevState.y_pos}) -> (${playerState.x_pos}, ${playerState.y_pos})")
+                                } else {
+                                    println("Player state updated: $playerId, position: (${playerState.x_pos}, ${playerState.y_pos})")
+                                }
                             }
 
                             is PostgresAction.Delete -> {

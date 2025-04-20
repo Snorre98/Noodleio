@@ -10,6 +10,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import com.badlogic.gdx.Gdx;
+
 /**
  * API for receiving real-time game state updates from the server
  * This is a one-way service - client only receives updates
@@ -38,25 +40,43 @@ public class RealtimeGameStateApi {
             @Override
             public void onPlayerStateChanged(PlayerGameState playerState) {
                 // Notify all registered callbacks
-                for (GameStateCallback callback : listeners) {
-                    callback.onPlayerStateChanged(playerState);
-                }
+                // Use Gdx.app.postRunnable to ensure UI thread safety
+                final PlayerGameState finalPlayerState = playerState;
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (GameStateCallback callback : listeners) {
+                            callback.onPlayerStateChanged(finalPlayerState);
+                        }
+                    }
+                });
             }
 
             @Override
             public void onGameSessionChanged(GameSession gameSession) {
                 // Notify all registered callbacks
-                for (GameStateCallback callback : listeners) {
-                    callback.onGameSessionChanged(gameSession);
-                }
+                final GameSession finalGameSession = gameSession;
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (GameStateCallback callback : listeners) {
+                            callback.onGameSessionChanged(finalGameSession);
+                        }
+                    }
+                });
             }
 
             @Override
             public void onGameOver() {
                 // Notify all registered callbacks
-                for (GameStateCallback callback : listeners) {
-                    callback.onGameOver();
-                }
+                Gdx.app.postRunnable(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (GameStateCallback callback : listeners) {
+                            callback.onGameOver();
+                        }
+                    }
+                });
             }
         });
     }

@@ -62,8 +62,11 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private static final float MOVEMENT_DELAY = 0.1f; // 100ms between movements
 
     // Player visualization
-    private static final float PLAYER_SIZE = 20;
+    private static final float PLAYER_SIZE = 40; // Increased from 20 to 40 for better visibility
     private ResourceManager resourceManager;
+
+    // Debug flags
+    private static final boolean DEBUG_POSITIONS = true;
 
     /**
      * Constructor for PlayState
@@ -105,11 +108,15 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         shapeRenderer = new ShapeRenderer();
         font = resourceManager != null ? resourceManager.getDefaultFont() : new BitmapFont();
 
+        // Set up cameras
+        cam.setToOrtho(false, 1080, 1080);
+
         // Set up game viewport for world coordinates
         gameViewport = new FitViewport(1080, 1080, cam);
 
         // Set up UI viewport for screen coordinates
         uiCamera = new OrthographicCamera();
+        uiCamera.setToOrtho(false, 1080, 1080);
         uiViewport = new FitViewport(1080, 1080, uiCamera);
 
         // Connect to the game session
@@ -168,27 +175,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
     }
 
-//    @Override
-//    public void update(float dt) {
-//        // Update movement cooldown
-//        if (movementCooldown > 0) {
-//            movementCooldown -= dt;
-//        }
-//
-//        // Only handle input if the game is not over
-//        if (!isGameOver) {
-//            handleInput();
-//        }
-//
-//        // Check for game over condition
-//        if (currentSession != null && currentSession.getEnded_at() != null) {
-//            if (!isGameOver) {
-//                handleGameOver();
-//            }
-//        }
-//    }
-
-
     @Override
     public void update(float dt) {
         // Update movement cooldown
@@ -210,27 +196,47 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                 handleGameOver();
             }
         }
+
+        if (DEBUG_POSITIONS) {
+            StringBuilder sb = new StringBuilder("Player states: ");
+            for (Map.Entry<String, PlayerGameState> entry : playerStates.entrySet()) {
+                PlayerGameState ps = entry.getValue();
+                sb.append(entry.getKey()).append(":(").append(ps.getX_pos())
+                    .append(",").append(ps.getY_pos()).append(") ");
+            }
+            Gdx.app.debug("PlayState", sb.toString());
+        }
     }
 
     private void updateCameraPosition() {
-        // Follow the local player if it exists in player states
-        PlayerGameState localPlayer = playerStates.get(playerId);
+        // Clean playerId just to be sure
+        String cleanPlayerId = playerId.replace("\"", "");
+
+        // Get player state with cleaned ID
+        PlayerGameState localPlayer = playerStates.get(cleanPlayerId);
+
         if (localPlayer != null) {
-            // Smoothly move camera to player position
-            float lerp = 0.1f; // Adjust for smoother/faster movement
-            cam.position.x += (localPlayer.getX_pos() - cam.position.x) * lerp;
-            cam.position.y += (localPlayer.getY_pos() - cam.position.y) * lerp;
+            // Update camera position to follow player
+            cam.position.set(localPlayer.getX_pos(), localPlayer.getY_pos(), 0);
 
-            // Keep camera within map bounds
+            // Keep camera within map bounds if we have map dimensions
             if (currentSession != null) {
-                float halfViewportWidth = cam.viewportWidth * cam.zoom / 2;
-                float halfViewportHeight = cam.viewportHeight * cam.zoom / 2;
+                float halfViewportWidth = gameViewport.getWorldWidth() / 2;
+                float halfViewportHeight = gameViewport.getWorldHeight() / 2;
 
+                // Clamp camera position to keep it within map boundaries
                 cam.position.x = Math.max(halfViewportWidth, Math.min(currentSession.getMap_length() - halfViewportWidth, cam.position.x));
                 cam.position.y = Math.max(halfViewportHeight, Math.min(currentSession.getMap_height() - halfViewportHeight, cam.position.y));
             }
 
+            // Always update the camera after changing its position
             cam.update();
+
+            // Debug info
+            if (DEBUG_POSITIONS) {
+                Gdx.app.debug("PlayState", String.format("Player position: (%.1f, %.1f), Camera position: (%.1f, %.1f)",
+                    localPlayer.getX_pos(), localPlayer.getY_pos(), cam.position.x, cam.position.y));
+            }
         }
     }
 
@@ -242,6 +248,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Set the game viewport for rendering the game world
         gameViewport.apply();
+
+        // Update the projection matrix of the shape renderer with the camera
+        shapeRenderer.setProjectionMatrix(cam.combined);
 
         // Render game elements using ShapeRenderer
         renderGameElements();
@@ -279,8 +288,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             font.setColor(playerColor);
 
             // Calculate text position above the player
-            // We need a different approach since BitmapFont doesn't have getBounds
-            // Instead, measure width approximately based on character count
             float textWidth = name.length() * 8; // Approximate width
             float textX = playerState.getX_pos() - (textWidth / 2);
             float textY = playerState.getY_pos() + PLAYER_SIZE + 10; // Position above player
@@ -300,8 +307,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private void renderGameElements() {
         if (currentSession == null) return;
 
-        shapeRenderer.setProjectionMatrix(cam.combined);
-
         // Draw game boundary
         shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
         shapeRenderer.setColor(Color.WHITE);
@@ -311,11 +316,17 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         // Draw players
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
-        for (PlayerGameState playerState : playerStates.values()) {
-            // Get or assign a color for this player
-            Gdx.app.log("playerStateLoop", "playerState.getX_pos()" + playerState.getX_pos());
+        for (Map.Entry<String, PlayerGameState> entry : playerStates.entrySet()) {
+            PlayerGameState playerState = entry.getValue();
+            String pid = entry.getKey();
 
-            String pid = playerState.getPlayer_id();
+            // Debug logging
+            if (pid.equals(playerId.replace("\"", ""))) {
+                Gdx.app.log("PlayState", "Drawing local player at (" +
+                    playerState.getX_pos() + ", " + playerState.getY_pos() + ")");
+            }
+
+            // Get or assign a color for this player
             if (!playerColors.containsKey(pid)) {
                 int colorIndex = playerColors.size() % colorPalette.length;
                 playerColors.put(pid, colorPalette[colorIndex]);
@@ -368,15 +379,20 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         String status = realtimeGameStateApi.getConnectionStatus();
         font.draw(sb, status, 10, 20);
 
+        // Debug information
+        if (DEBUG_POSITIONS && playerStates.containsKey(playerId)) {
+            PlayerGameState localPlayer = playerStates.get(playerId);
+            String debugInfo = String.format("Pos: (%.1f, %.1f) Cam: (%.1f, %.1f)",
+                localPlayer.getX_pos(), localPlayer.getY_pos(), cam.position.x, cam.position.y);
+            font.draw(sb, debugInfo, 10, 50);
+        }
+
         // Display game over message if applicable
         if (isGameOver) {
-            Gdx.app.log("PlayerState", "Game Over!");
-            //String gameOverText = "GAME OVER!";
-
-//            font.draw(sb, gameOverText,
-//                uiViewport.getWorldWidth() / 2 - font.getBounds(gameOverText).width / 2,
-//                uiViewport.getWorldHeight() / 2
-//            );
+            String gameOverText = "GAME OVER!";
+            font.draw(sb, gameOverText,
+                uiViewport.getWorldWidth() / 2 - 100,  // Approximate centering
+                uiViewport.getWorldHeight() / 2);
         }
     }
 
@@ -431,10 +447,15 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         realtimeGameStateApi.removeCallback(this);
     }
 
-//    public void resize(int width, int height) {
-//        gameViewport.update(width, height, true);
-//        uiViewport.update(width, height, true);
-//    }
+    public void resize(int width, int height) {
+        // Update viewports when screen is resized
+        gameViewport.update(width, height, false);
+        uiViewport.update(width, height, false);
+
+        // Log viewport dimensions
+        Gdx.app.log("PlayState", "Resized: Screen(" + width + ", " + height + ") " +
+            "Viewport(" + gameViewport.getWorldWidth() + ", " + gameViewport.getWorldHeight() + ")");
+    }
 
     //
     // RealtimeGameStateApi.GameStateCallback implementation
@@ -442,13 +463,22 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
     @Override
     public void onPlayerStateChanged(PlayerGameState playerState) {
-        // Update local player state cache
-        playerStates.put(playerState.getPlayer_id(), playerState);
+        // Clean the player ID by removing quotes
+        String pid = playerState.getPlayer_id().replace("\"", "");
+
+        // Update local player state cache with the CLEANED player ID
+        playerStates.put(pid, playerState);
+
+        // Debug log player position updates
+        if (pid.equals(playerId)) {
+            Gdx.app.log("PlayState", "Local player position updated: (" +
+                playerState.getX_pos() + ", " + playerState.getY_pos() + ")");
+        }
 
         // If this is a new player, try to get their name
-        if (!playerNames.containsKey(playerState.getPlayer_id())) {
+        if (!playerNames.containsKey(pid)) {
             // Clean the player ID by removing any extra quotes
-            String cleanPlayerId = playerState.getPlayer_id().replace("\"", "");
+            String cleanPlayerId = pid.replace("\"", "");
 
             // This would happen asynchronously in a real implementation
             String result = lobbyPlayerApi.getPlayerById(cleanPlayerId);
@@ -458,41 +488,12 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                 int nameEndIndex = result.indexOf(" (ID:", nameStartIndex);
                 if (nameStartIndex >= 0 && nameEndIndex > nameStartIndex) {
                     String name = result.substring(nameStartIndex, nameEndIndex);
-                    playerNames.put(playerState.getPlayer_id(), name);
+                    playerNames.put(pid, name);
+                    Gdx.app.log("PlayState", "Added player name for " + pid + ": " + name);
                 }
             }
         }
     }
-
-//    @Override
-//    public void onGameSessionChanged(GameSession gameSession) {
-//        this.currentSession = gameSession;
-//
-//        // If this is the first time we're getting the session, initialize the camera
-//        if (currentSession != null) {
-//            // Center the camera on the map
-//            cam.position.set(
-//                currentSession.getMap_length() / 2f,
-//                currentSession.getMap_height() / 2f,
-//                0
-//            );
-//
-//            // Set zoom to show the entire map
-//            // Calculate the zoom factor based on map dimensions and screen size
-//            float mapRatio = (float)currentSession.getMap_length() / currentSession.getMap_height();
-//            float screenRatio = (float)Gdx.graphics.getWidth() / Gdx.graphics.getHeight();
-//
-//            if (mapRatio > screenRatio) {
-//                // Width limited
-//                cam.zoom = currentSession.getMap_length() / Gdx.graphics.getWidth();
-//            } else {
-//                // Height limited
-//                cam.zoom = currentSession.getMap_height() / Gdx.graphics.getHeight();
-//            }
-//
-//            cam.update();
-//        }
-//    }
 
     @Override
     public void onGameSessionChanged(GameSession gameSession) {
@@ -500,7 +501,11 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // If this is the first time we're getting the session, initialize the camera
         if (currentSession != null) {
-            // Center the camera on the game map
+            // Log the map dimensions
+            Gdx.app.log("PlayState", "Game session map dimensions: " +
+                currentSession.getMap_length() + "x" + currentSession.getMap_height());
+
+            // Center the camera on the game map initially
             cam.position.set(
                 currentSession.getMap_length() / 2f,
                 currentSession.getMap_height() / 2f,
