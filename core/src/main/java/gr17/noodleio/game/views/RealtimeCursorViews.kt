@@ -1,4 +1,4 @@
-package gr17.noodleio.game.services
+package gr17.noodleio.game.views
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.CursorPosition
@@ -19,7 +19,7 @@ import kotlin.coroutines.CoroutineContext
 /*
 *  This is only used for proof of concept!
 * */
-class RealtimeCursorService(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
+class RealtimeCursorViews(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
     interface CursorPositionListener {
         fun onCursorPositionReceived(position: CursorPosition)
     }

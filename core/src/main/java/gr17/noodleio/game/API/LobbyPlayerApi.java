@@ -2,19 +2,20 @@ package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.services.LobbyPlayerService;
+import gr17.noodleio.game.views.LobbyPlayerViews;
 
 import java.util.List;
-import java.util.ArrayList;
 
 public class LobbyPlayerApi {
-    private final LobbyPlayerService lobbyPlayerService;
+    private final LobbyPlayerViews lobbyPlayerViews;
     private String joinLobbyMessage = "";
     private String playersListMessage = "";
     private String leaveLobbyMessage = "";
 
+    private String startGameSessionMessage = "";
+
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
-        this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
+        this.lobbyPlayerViews = new LobbyPlayerViews(environmentConfig);
     }
 
     /**
@@ -25,7 +26,7 @@ public class LobbyPlayerApi {
      */
     public String joinLobby(String playerName, String lobbyId) {
         try {
-            LobbyPlayer player = lobbyPlayerService.joinLobby(playerName, lobbyId);
+            LobbyPlayer player = lobbyPlayerViews.joinLobby(playerName, lobbyId);
 
             if (player != null) {
                 joinLobbyMessage = "Player '" + playerName + "' successfully joined lobby with ID: " + lobbyId +
@@ -67,7 +68,7 @@ public class LobbyPlayerApi {
      */
     public String getPlayersInLobby(String lobbyId) {
         try {
-            List<LobbyPlayer> players = lobbyPlayerService.getPlayersInLobby(lobbyId);
+            List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
 
             StringBuilder sb = new StringBuilder("Players in lobby " + lobbyId + ":\n");
 
@@ -102,7 +103,7 @@ public class LobbyPlayerApi {
      */
     public String leaveLobby(String playerId) {
         try {
-            boolean success = lobbyPlayerService.leaveLobby(playerId);
+            boolean success = lobbyPlayerViews.leaveLobby(playerId);
 
             if (success) {
                 leaveLobbyMessage = "Player successfully left the lobby";
@@ -125,7 +126,7 @@ public class LobbyPlayerApi {
      */
     public String getPlayerById(String playerId) {
         try {
-            LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
+            LobbyPlayer player = lobbyPlayerViews.getPlayerById(playerId);
 
             if (player != null) {
                 return "Player found: " + player.getPlayer_name() +
@@ -140,6 +141,62 @@ public class LobbyPlayerApi {
             e.printStackTrace();
             return errorMsg;
         }
+    }
+
+
+    /**
+     * Starts a game session for a lobby
+     * Only the lobby owner can start a game session
+     *
+     * @param playerId The ID of the player trying to start the game (must be lobby owner)
+     * @param lobbyId The ID of the lobby to create a game session for
+     * @param winningScore Score required to win (default: 50)
+     * @param mapLength Map length (default: 1080)
+     * @param mapHeight Map height (default: 1080)
+     * @return Status message indicating success or failure
+     */
+    public String startGameSession(String playerId, String lobbyId, int winningScore, int mapLength, int mapHeight) {
+        try {
+            kotlin.Pair<gr17.noodleio.game.models.GameSession, String> result =
+                lobbyPlayerViews.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
+
+            gr17.noodleio.game.models.GameSession gameSession = result.getFirst();
+            String message = result.getSecond();
+
+            if (gameSession != null) {
+                startGameSessionMessage = "Game session started successfully: " +
+                    "ID: " + gameSession.getId() +
+                    ", Lobby: " + gameSession.getLobby_id() +
+                    ", Winning Score: " + gameSession.getWinning_score();
+                return startGameSessionMessage;
+            } else {
+                startGameSessionMessage = "Failed to start game session: " + message;
+                return startGameSessionMessage;
+            }
+        } catch (Exception e) {
+            startGameSessionMessage = "Error starting game session: " + e.getMessage();
+            e.printStackTrace();
+            return startGameSessionMessage;
+        }
+    }
+
+    /**
+     * Starts a game session for a lobby with default settings
+     *
+     * @param playerId The ID of the player trying to start the game (must be lobby owner)
+     * @param lobbyId The ID of the lobby to create a game session for
+     * @return Status message indicating success or failure
+     */
+    public String startGameSession(String playerId, String lobbyId) {
+        return startGameSession(playerId, lobbyId, 50, 1080, 1080);
+    }
+
+    /**
+     * Gets the most recent start game session message
+     * @return The start game session status message
+     */
+    public String getStartGameSessionMessage() {
+        return startGameSessionMessage;
     }
 
     /**
@@ -170,7 +227,7 @@ public class LobbyPlayerApi {
      * Gets the underlying LobbyPlayerService
      * @return The LobbyPlayerService instance
      */
-    public LobbyPlayerService getLobbyPlayerService() {
-        return lobbyPlayerService;
+    public LobbyPlayerViews getLobbyPlayerService() {
+        return lobbyPlayerViews;
     }
 }

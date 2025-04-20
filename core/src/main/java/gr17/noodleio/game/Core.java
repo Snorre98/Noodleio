@@ -2,12 +2,17 @@ package gr17.noodleio.game;
 
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.ScreenUtils;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
+import gr17.noodleio.game.API.LobbyApi;
+import gr17.noodleio.game.API.LobbyPlayerApi;
+import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.states.GameStateManager;
@@ -44,6 +49,7 @@ public class Core extends ApplicationAdapter {
     private static final float MIN_WORLD_HEIGHT = 480;
     private static final float MAX_WORLD_WIDTH = 1920;
     private static final float MAX_WORLD_HEIGHT = 1080;
+    private BitmapFont font;
 
     @Override
     public void create() {
@@ -53,28 +59,12 @@ public class Core extends ApplicationAdapter {
         viewport.apply(true); // Apply the viewport initially
 
         batch = new SpriteBatch();
+        font = new BitmapFont();
+        font.getData().setScale(1.5f);
 
         // Initialize game state manager and set initial state
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
-
-
-//        ResourceManager rm = new ResourceManager();
-//        rm.load(); //Laster inn font fra rm
-//        //Mock data
-//        Array<PlayerResult> results = new Array<>();
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Per", 120));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Paal", 90));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Espen", 70));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("You", 65));
-//        results.add(new gr17.noodleio.game.model.PlayerResult("Askeladd", 40));
-//
-//        String playerName = "Magnus";
-//        int placement = 4;
-//
-//        gsm.push(new gr17.noodleio.game.states.EndGameState(gsm, results, playerName, placement, rm));
-
-
     }
 
     @Override
@@ -87,6 +77,10 @@ public class Core extends ApplicationAdapter {
 
         gsm.update(Gdx.graphics.getDeltaTime());
         gsm.render(batch);
+
+        // Draw test status
+        batch.begin();
+        batch.end();
     }
 
     @Override
@@ -98,6 +92,7 @@ public class Core extends ApplicationAdapter {
     @Override
     public void dispose() {
         batch.dispose();
+        font.dispose();
         // Also dispose the current state
         if (gsm != null && !gsm.isEmpty()) {
             gsm.disposeAll();
