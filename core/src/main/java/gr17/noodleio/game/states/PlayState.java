@@ -5,13 +5,10 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.utils.Array;
-import com.badlogic.gdx.utils.viewport.FitViewport;
+import com.badlogic.gdx.utils.viewport.ScreenViewport;
 import com.badlogic.gdx.utils.viewport.Viewport;
 
 import gr17.noodleio.game.API.LobbyPlayerApi;
@@ -19,7 +16,6 @@ import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.API.RealtimeGameStateApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
 import gr17.noodleio.game.util.ResourceManager;
@@ -29,496 +25,158 @@ import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PlayState extends State implements RealtimeGameStateApi.GameStateCallback {
-    // Session and player info
-    private String sessionId;
-    private String playerId;
-    private String playerName;
-    private boolean isGameOver = false;
-
-    // APIs for game state management
-    private PlayerGameStateApi playerGameStateApi;
-    private RealtimeGameStateApi realtimeGameStateApi;
-    private LobbyPlayerApi lobbyPlayerApi;
-
-    // Rendering
-    private ShapeRenderer shapeRenderer;
+    // BASIC FRAMEWORK - Just enough to get started
+    private ShapeRenderer shapes;
     private BitmapFont font;
-    private Viewport gameViewport;
-    private Viewport uiViewport;
-    private OrthographicCamera uiCamera;
-
-    // Game state tracking
-    private ConcurrentHashMap<String, PlayerGameState> playerStates = new ConcurrentHashMap<>();
-    private ConcurrentHashMap<String, String> playerNames = new ConcurrentHashMap<>();
+    private ConcurrentHashMap<String, PlayerGameState> players = new ConcurrentHashMap<>();
+    private String playerId;
+    private String sessionId;
     private GameSession currentSession;
-    private Map<String, Color> playerColors = new HashMap<>();
-    private Color[] colorPalette = {
-        Color.RED, Color.BLUE, Color.GREEN, Color.YELLOW,
-        Color.PURPLE, Color.CYAN, Color.ORANGE, Color.PINK
-    };
-
-    // Movement cooldown to prevent spamming
+    private RealtimeGameStateApi realtimeGameStateApi;
+    private PlayerGameStateApi playerGameStateApi;
     private float movementCooldown = 0;
-    private static final float MOVEMENT_DELAY = 0.1f; // 100ms between movements
+    private static final float MOVEMENT_DELAY = 0.1f;
 
-    // Player visualization
-    private static final float PLAYER_SIZE = 40; // Increased from 20 to 40 for better visibility
-    private ResourceManager resourceManager;
-
-    // Debug flags
-    private static final boolean DEBUG_POSITIONS = true;
-
-    /**
-     * Constructor for PlayState
-     * @param gsm Game State Manager
-     * @param sessionId The game session ID
-     * @param playerId The local player's ID
-     * @param playerName The local player's name
-     * @param rm Resource Manager for fonts and textures
-     */
     public PlayState(GameStateManager gsm, String sessionId, String playerId, String playerName, ResourceManager rm) {
         super(gsm);
         this.sessionId = sessionId;
         this.playerId = playerId;
-        this.playerName = playerName;
-        this.resourceManager = rm;
 
-        // Initialize environment config
-        EnvironmentConfig environmentConfig = new EnvironmentConfig() {
-            @Override
-            public String getSupabaseUrl() {
-                return Config.getSupabaseUrl();
-            }
+        // Simple setup - pure screen coordinates, no fancy viewport or camera
+        shapes = new ShapeRenderer();
+        font = new BitmapFont();
+        font.getData().setScale(2);
 
-            @Override
-            public String getSupabaseKey() {
-                return Config.getSupabaseKey();
-            }
+        // Initialize API and connect
+        EnvironmentConfig config = new EnvironmentConfig() {
+            @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
+            @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
         };
 
-        // Initialize APIs
-        playerGameStateApi = new PlayerGameStateApi(environmentConfig);
-        realtimeGameStateApi = new RealtimeGameStateApi(environmentConfig);
-        lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
-
-        // Register as a callback for game state updates
+        realtimeGameStateApi = new RealtimeGameStateApi(config);
+        playerGameStateApi = new PlayerGameStateApi(config);
         realtimeGameStateApi.addCallback(this);
-
-        // Initialize rendering tools
-        shapeRenderer = new ShapeRenderer();
-        font = resourceManager != null ? resourceManager.getDefaultFont() : new BitmapFont();
-
-        // Set up cameras
-        cam.setToOrtho(false, 1080, 1080);
-
-        // Set up game viewport for world coordinates
-        gameViewport = new FitViewport(1080, 1080, cam);
-
-        // Set up UI viewport for screen coordinates
-        uiCamera = new OrthographicCamera();
-        uiCamera.setToOrtho(false, 1080, 1080);
-        uiViewport = new FitViewport(1080, 1080, uiCamera);
-
-        // Connect to the game session
-        connectToGameSession();
-
-        // Map player names (since we have the local player's name)
-        playerNames.put(playerId, playerName);
-
-        // Assign a color to the local player
-        playerColors.put(playerId, colorPalette[0]);
-
-        Gdx.app.log("PlayState", "Initialized with sessionId: " + sessionId + ", playerId: " + playerId);
-    }
-
-    /**
-     * Connect to the game session using the realtime API
-     */
-    private void connectToGameSession() {
-        String result = realtimeGameStateApi.connect(sessionId, playerId);
-        Gdx.app.log("PlayState", "Connection result: " + result);
+        realtimeGameStateApi.connect(sessionId, playerId);
     }
 
     @Override
     protected void handleInput() {
-        // Only process input if movement cooldown has elapsed
         if (movementCooldown <= 0) {
-            boolean moved = false;
-
-            // Movement controls
-            if (Gdx.input.isKeyPressed(Input.Keys.W) || Gdx.input.isKeyPressed(Input.Keys.UP)) {
-                String result = playerGameStateApi.movePlayerUp(playerId, sessionId);
-                Gdx.app.log("PlayState", "Move up result: " + result);
-                moved = true;
-            } else if (Gdx.input.isKeyPressed(Input.Keys.S) || Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-                String result = playerGameStateApi.movePlayerDown(playerId, sessionId);
-                Gdx.app.log("PlayState", "Move down result: " + result);
-                moved = true;
-            } else if (Gdx.input.isKeyPressed(Input.Keys.A) || Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-                String result = playerGameStateApi.movePlayerLeft(playerId, sessionId);
-                Gdx.app.log("PlayState", "Move left result: " + result);
-                moved = true;
-            } else if (Gdx.input.isKeyPressed(Input.Keys.D) || Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-                String result = playerGameStateApi.movePlayerRight(playerId, sessionId);
-                Gdx.app.log("PlayState", "Move right result: " + result);
-                moved = true;
-            }
-
-            if (moved) {
+            if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
+                playerGameStateApi.movePlayerUp(playerId, sessionId);
+                movementCooldown = MOVEMENT_DELAY;
+            } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
+                playerGameStateApi.movePlayerDown(playerId, sessionId);
+                movementCooldown = MOVEMENT_DELAY;
+            } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
+                playerGameStateApi.movePlayerLeft(playerId, sessionId);
+                movementCooldown = MOVEMENT_DELAY;
+            } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
+                playerGameStateApi.movePlayerRight(playerId, sessionId);
                 movementCooldown = MOVEMENT_DELAY;
             }
         }
 
-        // Escape key to exit the game
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
-            disconnectAndReturnToMenu();
+            realtimeGameStateApi.disconnect();
+            gsm.set(new MenuState(gsm));
         }
     }
 
     @Override
     public void update(float dt) {
-        // Update movement cooldown
-        if (movementCooldown > 0) {
-            movementCooldown -= dt;
-        }
-
-        // Only handle input if the game is not over
-        if (!isGameOver) {
-            handleInput();
-        }
-
-        // Update camera to follow local player if exists
-        updateCameraPosition();
-
-        // Check for game over condition
-        if (currentSession != null && currentSession.getEnded_at() != null) {
-            if (!isGameOver) {
-                handleGameOver();
-            }
-        }
-
-        if (DEBUG_POSITIONS) {
-            StringBuilder sb = new StringBuilder("Player states: ");
-            for (Map.Entry<String, PlayerGameState> entry : playerStates.entrySet()) {
-                PlayerGameState ps = entry.getValue();
-                sb.append(entry.getKey()).append(":(").append(ps.getX_pos())
-                    .append(",").append(ps.getY_pos()).append(") ");
-            }
-            Gdx.app.debug("PlayState", sb.toString());
-        }
-    }
-
-    private void updateCameraPosition() {
-        // Clean playerId just to be sure
-        String cleanPlayerId = playerId.replace("\"", "");
-
-        // Get player state with cleaned ID
-        PlayerGameState localPlayer = playerStates.get(cleanPlayerId);
-
-        if (localPlayer != null) {
-            // Update camera position to follow player
-            cam.position.set(localPlayer.getX_pos(), localPlayer.getY_pos(), 0);
-
-            // Keep camera within map bounds if we have map dimensions
-            if (currentSession != null) {
-                float halfViewportWidth = gameViewport.getWorldWidth() / 2;
-                float halfViewportHeight = gameViewport.getWorldHeight() / 2;
-
-                // Clamp camera position to keep it within map boundaries
-                cam.position.x = Math.max(halfViewportWidth, Math.min(currentSession.getMap_length() - halfViewportWidth, cam.position.x));
-                cam.position.y = Math.max(halfViewportHeight, Math.min(currentSession.getMap_height() - halfViewportHeight, cam.position.y));
-            }
-
-            // Always update the camera after changing its position
-            cam.update();
-
-            // Debug info
-            if (DEBUG_POSITIONS) {
-                Gdx.app.debug("PlayState", String.format("Player position: (%.1f, %.1f), Camera position: (%.1f, %.1f)",
-                    localPlayer.getX_pos(), localPlayer.getY_pos(), cam.position.x, cam.position.y));
-            }
-        }
+        if (movementCooldown > 0) movementCooldown -= dt;
+        handleInput();
     }
 
     @Override
     public void render(SpriteBatch sb) {
-        // Clear the screen
-        Gdx.gl.glClearColor(0.15f, 0.15f, 0.2f, 1);
+        // SIMPLE RENDERING - just screen coordinates
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.3f, 1); // Dark blue
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
-        // Set the game viewport for rendering the game world
-        gameViewport.apply();
+        // Draw giant test patterns - these should be visible no matter what
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-        // Update the projection matrix of the shape renderer with the camera
-        shapeRenderer.setProjectionMatrix(cam.combined);
+        // Draw red crosshair in middle of screen
+        shapes.setColor(Color.RED);
+        shapes.rectLine(
+            Gdx.graphics.getWidth()/2 - 100, Gdx.graphics.getHeight()/2,
+            Gdx.graphics.getWidth()/2 + 100, Gdx.graphics.getHeight()/2, 10);
+        shapes.rectLine(
+            Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2 - 100,
+            Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2 + 100, 10);
 
-        // Render game elements using ShapeRenderer
-        renderGameElements();
+        // Draw corner markers
+        shapes.setColor(Color.GREEN);
+        shapes.circle(0, 0, 30);
+        shapes.circle(Gdx.graphics.getWidth(), 0, 30);
+        shapes.circle(0, Gdx.graphics.getHeight(), 30);
+        shapes.circle(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 30);
 
-        // Render player names in the game world
-        renderPlayerNames(sb);
+        // Draw all players (screen coordinates)
+        for (PlayerGameState player : players.values()) {
+            float x = player.getX_pos() * Gdx.graphics.getWidth() / 1080;
+            float y = player.getY_pos() * Gdx.graphics.getHeight() / 1080;
 
-        // Switch to UI viewport for text rendering
-        uiViewport.apply();
-        sb.setProjectionMatrix(uiCamera.combined);
+            shapes.setColor(Color.WHITE);
+            shapes.circle(x, y, 30);
 
-        // Begin sprite batch for UI text rendering
+            shapes.setColor(Color.BLUE);
+            shapes.circle(x, y, 20);
+        }
+
+        shapes.end();
+
+        // Draw text overlay
         sb.begin();
-        renderUI(sb);
-        sb.end();
-    }
-
-    /**
-     * Render player names above their character
-     */
-    private void renderPlayerNames(SpriteBatch sb) {
-        if (currentSession == null) return;
-
-        // Set projection matrix for the game world
-        sb.setProjectionMatrix(cam.combined);
-        sb.begin();
-
-        // Draw player names above each player
-        for (PlayerGameState playerState : playerStates.values()) {
-            String pid = playerState.getPlayer_id();
-            String name = playerNames.getOrDefault(pid, "Player " + pid.substring(0, 4));
-
-            // Get the color for this player
-            Color playerColor = playerColors.getOrDefault(pid, Color.WHITE);
-            font.setColor(playerColor);
-
-            // Calculate text position above the player
-            float textWidth = name.length() * 8; // Approximate width
-            float textX = playerState.getX_pos() - (textWidth / 2);
-            float textY = playerState.getY_pos() + PLAYER_SIZE + 10; // Position above player
-
-            // Draw the player name
-            font.draw(sb, name, textX, textY);
-        }
-
-        // Reset font color
-        font.setColor(Color.WHITE);
-        sb.end();
-    }
-
-    /**
-     * Render game elements using ShapeRenderer
-     */
-    private void renderGameElements() {
-        if (currentSession == null) return;
-
-        // Draw game boundary
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-        shapeRenderer.setColor(Color.WHITE);
-        shapeRenderer.rect(0, 0, currentSession.getMap_length(), currentSession.getMap_height());
-        shapeRenderer.end();
-
-        // Draw players
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
-
-        for (Map.Entry<String, PlayerGameState> entry : playerStates.entrySet()) {
-            PlayerGameState playerState = entry.getValue();
-            String pid = entry.getKey();
-
-            // Debug logging
-            if (pid.equals(playerId.replace("\"", ""))) {
-                Gdx.app.log("PlayState", "Drawing local player at (" +
-                    playerState.getX_pos() + ", " + playerState.getY_pos() + ")");
-            }
-
-            // Get or assign a color for this player
-            if (!playerColors.containsKey(pid)) {
-                int colorIndex = playerColors.size() % colorPalette.length;
-                playerColors.put(pid, colorPalette[colorIndex]);
-            }
-
-            // Draw the player
-            shapeRenderer.setColor(playerColors.get(pid));
-            shapeRenderer.rect(
-                playerState.getX_pos() - PLAYER_SIZE / 2,
-                playerState.getY_pos() - PLAYER_SIZE / 2,
-                PLAYER_SIZE, PLAYER_SIZE
-            );
-        }
-
-        shapeRenderer.end();
-    }
-
-    /**
-     * Render UI elements using SpriteBatch
-     */
-    private void renderUI(SpriteBatch sb) {
-        // Render scores
-        float yPos = uiViewport.getWorldHeight() - 20;
-        float xPos = 10;
-
-        // Title
-        font.draw(sb, "SCORES:", xPos, yPos);
-        yPos -= 30;
-
-        // Render each player's score
-        for (PlayerGameState playerState : playerStates.values()) {
-            String pid = playerState.getPlayer_id();
-            String name = playerNames.getOrDefault(pid, "Player " + pid.substring(0, 4));
-
-            // Get the assigned color for this player
-            if (playerColors.containsKey(pid)) {
-                font.setColor(playerColors.get(pid));
-            } else {
-                font.setColor(Color.WHITE);
-            }
-
-            font.draw(sb, name + ": " + playerState.getScore(), xPos, yPos);
-            yPos -= 25;
-        }
-
-        // Reset font color
         font.setColor(Color.WHITE);
 
-        // Display connection status
-        String status = realtimeGameStateApi.getConnectionStatus();
-        font.draw(sb, status, 10, 20);
+        // Draw player positions
+        float y = Gdx.graphics.getHeight() - 50;
+        font.draw(sb, "Players: " + players.size(), 20, y);
 
-        // Debug information
-        if (DEBUG_POSITIONS && playerStates.containsKey(playerId)) {
-            PlayerGameState localPlayer = playerStates.get(playerId);
-            String debugInfo = String.format("Pos: (%.1f, %.1f) Cam: (%.1f, %.1f)",
-                localPlayer.getX_pos(), localPlayer.getY_pos(), cam.position.x, cam.position.y);
-            font.draw(sb, debugInfo, 10, 50);
+        for (PlayerGameState player : players.values()) {
+            y -= 40;
+            String isLocal = player.getPlayer_id().replace("\"", "").equals(playerId) ? " (YOU)" : "";
+            font.draw(sb, String.format("Player %s: (%.1f, %.1f)%s",
+                player.getPlayer_id().substring(0, 4),
+                player.getX_pos(), player.getY_pos(), isLocal), 20, y);
         }
 
-        // Display game over message if applicable
-        if (isGameOver) {
-            String gameOverText = "GAME OVER!";
-            font.draw(sb, gameOverText,
-                uiViewport.getWorldWidth() / 2 - 100,  // Approximate centering
-                uiViewport.getWorldHeight() / 2);
-        }
-    }
-
-    /**
-     * Handle game over - prepare to transition to the EndGameState
-     * This is a placeholder for future implementation
-     */
-    private void handleGameOver() {
-        isGameOver = true;
-        Gdx.app.log("PlayState", "Game over detected - TODO: Implement full game over handling");
-
-        // TODO: Implement proper game over handling and EndGameState transition
-        // For now, just display a message and return to menu after a delay
-
-        // Add a delay before returning to menu
-        new Thread(() -> {
-            try {
-                Thread.sleep(3000); // 3 second delay
-                Gdx.app.postRunnable(this::disconnectAndReturnToMenu);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }).start();
-    }
-
-    /**
-     * Disconnect from the game session and return to the menu
-     */
-    private void disconnectAndReturnToMenu() {
-        // Disconnect from game session
-        String result = realtimeGameStateApi.disconnect();
-        Gdx.app.log("PlayState", "Disconnection result: " + result);
-
-        // Return to menu
-        gsm.set(new MenuState(gsm));
+        font.draw(sb, "Press ESC to exit", 20, 40);
+        sb.end();
     }
 
     @Override
     public void dispose() {
-        // Clean up resources
-        shapeRenderer.dispose();
-
-        if (font != null && resourceManager == null) {
-            // Only dispose the font if we created it (not if it came from ResourceManager)
-            font.dispose();
-        }
-
-        // Disconnect from the game session
-        realtimeGameStateApi.disconnect();
-
-        // Remove callbacks
+        shapes.dispose();
+        font.dispose();
         realtimeGameStateApi.removeCallback(this);
+        realtimeGameStateApi.disconnect();
     }
 
-    public void resize(int width, int height) {
-        // Update viewports when screen is resized
-        gameViewport.update(width, height, false);
-        uiViewport.update(width, height, false);
-
-        // Log viewport dimensions
-        Gdx.app.log("PlayState", "Resized: Screen(" + width + ", " + height + ") " +
-            "Viewport(" + gameViewport.getWorldWidth() + ", " + gameViewport.getWorldHeight() + ")");
-    }
-
-    //
-    // RealtimeGameStateApi.GameStateCallback implementation
-    //
-
+    // Callback implementations
     @Override
     public void onPlayerStateChanged(PlayerGameState playerState) {
-        // Clean the player ID by removing quotes
         String pid = playerState.getPlayer_id().replace("\"", "");
-
-        // Update local player state cache with the CLEANED player ID
-        playerStates.put(pid, playerState);
-
-        // Debug log player position updates
-        if (pid.equals(playerId)) {
-            Gdx.app.log("PlayState", "Local player position updated: (" +
-                playerState.getX_pos() + ", " + playerState.getY_pos() + ")");
-        }
-
-        // If this is a new player, try to get their name
-        if (!playerNames.containsKey(pid)) {
-            // Clean the player ID by removing any extra quotes
-            String cleanPlayerId = pid.replace("\"", "");
-
-            // This would happen asynchronously in a real implementation
-            String result = lobbyPlayerApi.getPlayerById(cleanPlayerId);
-            if (result != null && result.contains("Player found:")) {
-                // Extract the player name from the result string
-                int nameStartIndex = result.indexOf("Player found: ") + 14;
-                int nameEndIndex = result.indexOf(" (ID:", nameStartIndex);
-                if (nameStartIndex >= 0 && nameEndIndex > nameStartIndex) {
-                    String name = result.substring(nameStartIndex, nameEndIndex);
-                    playerNames.put(pid, name);
-                    Gdx.app.log("PlayState", "Added player name for " + pid + ": " + name);
-                }
-            }
-        }
+        players.put(pid, playerState);
     }
 
     @Override
     public void onGameSessionChanged(GameSession gameSession) {
-        this.currentSession = gameSession;
-
-        // If this is the first time we're getting the session, initialize the camera
-        if (currentSession != null) {
-            // Log the map dimensions
-            Gdx.app.log("PlayState", "Game session map dimensions: " +
-                currentSession.getMap_length() + "x" + currentSession.getMap_height());
-
-            // Center the camera on the game map initially
-            cam.position.set(
-                currentSession.getMap_length() / 2f,
-                currentSession.getMap_height() / 2f,
-                0
-            );
-            cam.update();
-        }
+        currentSession = gameSession;
     }
 
     @Override
     public void onGameOver() {
-        if (!isGameOver) {
-            handleGameOver();
-        }
+        // TODO
     }
+
+//    @Override
+//    public void onGameOver() {
+//        if (!isGameOver) {
+//            handleGameOver();
+//        }
+//    }
 }
