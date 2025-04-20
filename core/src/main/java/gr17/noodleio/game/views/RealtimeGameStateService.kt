@@ -3,7 +3,7 @@ package gr17.noodleio.game.views
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.PlayerGameState
-import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
 import io.github.jan.supabase.realtime.channel
@@ -163,7 +163,8 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                     schema = "public"
                 ) {
                     table = "PlayerGameState"
-                    filter = "session_id=eq.${sessionId!!}"
+                    // Fix: Use proper filtering method instead of direct assignment
+                    filter("session_id", FilterOperator.EQ, sessionId!!)
                 }
 
                 playerChanges.onEach { action ->
@@ -218,6 +219,9 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
 
                                 println("Player left: $playerId")
                             }
+                            else -> {
+                                println("Unhandled action type: ${action::class.simpleName}")
+                            }
                         }
                     } catch (e: Exception) {
                         println("Error processing player state change: ${e.message}")
@@ -243,7 +247,7 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                     schema = "public"
                 ) {
                     table = "GameSession"
-                    filter = "id=eq.${sessionId!!}"
+                    filter("id", FilterOperator.EQ, sessionId!!)
                 }
 
                 changes.onEach { update ->
