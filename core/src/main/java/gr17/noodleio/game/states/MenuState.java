@@ -19,8 +19,10 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
 import gr17.noodleio.game.API.LobbyApi;
+import gr17.noodleio.game.API.LobbyPlayerApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
+import gr17.noodleio.game.models.LobbyPlayer;
 
 public class MenuState extends State {
     private Stage stage;
@@ -32,6 +34,8 @@ public class MenuState extends State {
 
     // API for lobby operations
     private LobbyApi lobbyApi;
+
+    private LobbyPlayerApi lobbyPlayerApi;
     private String lobbyId;
     private String playerId;
 
@@ -79,6 +83,7 @@ public class MenuState extends State {
 
         // Initialize lobby API
         lobbyApi = new LobbyApi(environmentConfig);
+        lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
     }
 
     private void setupSkin() {
@@ -249,9 +254,8 @@ public class MenuState extends State {
                     return;
                 }
 
-                // TODO: Implement joining a lobby
                 statusLabel.setText("Joining lobby: " + lobbyCode);
-                // joinLobby(playerName, lobbyCode, gsm);
+                joinLobby(playerName, lobbyCode, gsm);
             }
         });
 
@@ -308,6 +312,20 @@ public class MenuState extends State {
                 Gdx.app.error("MenuState", "Caused by: " + e.getCause().getMessage());
             }
             statusLabel.setText("Error: " + e.getMessage());
+        }
+    }
+
+    private void joinLobby(String playerName, String lobbyId, GameStateManager gsm){
+        try {
+            statusLabel.setText("Joining lobby... ");
+            Gdx.app.log("MenuState", "Attempting to join lobby with player: " + playerName);
+            String result = lobbyPlayerApi.joinLobby(playerName, lobbyId);
+            Gdx.app.log("MenuState", "Lobby player API result: " + result);
+            LobbyState lobbyState = new LobbyState(gsm);
+            lobbyState.setLobbyData(lobbyId, "Not needed", playerName);
+            gsm.set(lobbyState);
+        } catch (Exception e){
+            Gdx.app.error("MenuState", "Error joining lobby", e);
         }
     }
 
