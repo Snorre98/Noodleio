@@ -47,6 +47,27 @@ public class LeaderboardApi {
     }
 
     /**
+     * Adds a given entry to the leaderboard
+     * @return Status message
+     */
+    public String addLeaderboardEntry(String playerName, int score){
+        try {
+            // Add the entry
+            LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntry(playerName, score, null);
+            if (newEntry != null) {
+                addEntryMessage = "Added new entry: " + playerName + " with score " + score;
+            } else {
+                addEntryMessage = "Failed to add new leaderboard entry";
+            }
+            return addEntryMessage;
+        } catch (Exception e) {
+            addEntryMessage = "Error adding leaderboard entry: " + e.getMessage();
+            e.printStackTrace();
+            return addEntryMessage;
+        }
+    }
+
+    /**
      * Fetches the top leaderboard entries
      * @param limit Number of entries to fetch
      * @return Formatted string of leaderboard entries
