@@ -1,6 +1,7 @@
 package gr17.noodleio.game.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.Pixmap;
 import com.badlogic.gdx.graphics.Texture;
@@ -12,6 +13,8 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField.TextFieldStyle;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
@@ -19,6 +22,8 @@ public class MenuState extends State {
     private Stage stage;
     private Skin skin;
     private Table table;
+    private TextField playerNameField;
+    private TextField lobbyCodeField;
 
     public MenuState(GameStateManager gsm) {
         super(gsm);
@@ -27,8 +32,20 @@ public class MenuState extends State {
         stage = new Stage(new FitViewport(800, 480, cam));
         Gdx.input.setInputProcessor(stage);
 
+        // Create skin with required resources
+        setupSkin();
+
+        // Create table for UI layout
+        table = new Table();
+        table.setFillParent(true);
+        stage.addActor(table);
+
+        setupTitle();
+        setupButtons(gsm);
+    }
+
+    private void setupSkin() {
         try {
-            // Create skin with required resources
             skin = new Skin();
 
             // Load font and textures safely - check if they exist first
@@ -38,6 +55,13 @@ public class MenuState extends State {
                 // If not found, create a default font
                 skin.add("default-font", new BitmapFont());
             }
+
+            // Create a white pixel texture for TextField
+            Pixmap whitePix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            whitePix.setColor(Color.WHITE);
+            whitePix.fill();
+            skin.add("white", new Texture(whitePix));
+            whitePix.dispose();
 
             // Load button textures if they exist
             if (Gdx.files.internal("default-round.png").exists()) {
@@ -74,12 +98,19 @@ public class MenuState extends State {
             fallbackStyle.font = skin.getFont("default-font");
             skin.add("default", fallbackStyle);
         }
+    }
 
-        // Create table for UI layout
-        table = new Table();
-        table.setFillParent(true);
-        stage.addActor(table);
+    private TextFieldStyle createTextFieldStyle() {
+        TextFieldStyle textFieldStyle = new TextFieldStyle();
+        textFieldStyle.font = skin.getFont("default-font");
+        textFieldStyle.fontColor = Color.WHITE;
+        textFieldStyle.cursor = skin.newDrawable("white", Color.WHITE);
+        textFieldStyle.selection = skin.newDrawable("white", new Color(0.5f, 0.5f, 0.5f, 0.5f));
+        textFieldStyle.background = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.8f));
+        return textFieldStyle;
+    }
 
+    private void setupTitle() {
         try {
             // Add title to the top of the menu
             BitmapFont titleFont;
@@ -105,34 +136,60 @@ public class MenuState extends State {
             table.add(titleLabel).padBottom(50).colspan(1);
             table.row();
         }
-
+    }
+    private void setupButtons(GameStateManager gsm) {
         // Create buttons
         TextButton createGameButton = new TextButton("Create Game", skin);
         TextButton joinGameButton = new TextButton("Join Game", skin);
         TextButton leaderboardButton = new TextButton("Leaderboard", skin);
 
+        // Create and add player name input field
+        playerNameField = new TextField("", createTextFieldStyle());
+        playerNameField.setMessageText("Enter player alias...");
+        table.add(playerNameField).width(200).height(40).padBottom(20);
+        table.row();
         // Add buttons to table with spacing
         table.add(createGameButton).padBottom(20).width(200).height(50);
+        table.row();
+        // Create and add lobby code input field
+        lobbyCodeField = new TextField("", createTextFieldStyle());
+        lobbyCodeField.setMessageText("Enter lobby code...");
+        table.add(lobbyCodeField).width(200).height(40).padBottom(20);
         table.row();
         table.add(joinGameButton).padBottom(20).width(200).height(50);
         table.row();
         table.add(leaderboardButton).width(200).height(50);
 
-
         // Add button listeners
         createGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                gsm.set(new LobbyState(gsm));
-                dispose(); // Dispose resources when changing states
+                String playerName = playerNameField.getText();
+                if (playerName != null && !playerName.trim().isEmpty()) {
+                    // Use the player name to create a new lobby
+                    System.out.println("Creating game with player name: " + playerName);
+                    gsm.set(new LobbyState(gsm));
+                    dispose(); // Dispose resources when changing states
+                } else {
+                    // Show error or prompt user to enter a name
+                    System.out.println("Please enter a player name");
+                }
             }
         });
 
         joinGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                gsm.set(new LobbyState(gsm));
-                dispose(); // Dispose resources when changing states
+                String lobbyCode = lobbyCodeField.getText();
+                if (lobbyCode != null && !lobbyCode.trim().isEmpty()) {
+                    // Use the lobby code to join an existing lobby
+                    System.out.println("Joining game with lobby code: " + lobbyCode);
+                    gsm.set(new LobbyState(gsm));
+                    dispose(); // Dispose resources when changing states
+                } else {
+                    // Show error or prompt user to enter a lobby code
+                    System.out.println("Please enter a lobby code");
+                }
             }
         });
 
@@ -183,6 +240,11 @@ public class MenuState extends State {
 
                 if (skin.has("default-round-down", Texture.class)) {
                     Texture tex = skin.get("default-round-down", Texture.class);
+                    if (tex != null) tex.dispose();
+                }
+
+                if (skin.has("white", Texture.class)) {
+                    Texture tex = skin.get("white", Texture.class);
                     if (tex != null) tex.dispose();
                 }
 

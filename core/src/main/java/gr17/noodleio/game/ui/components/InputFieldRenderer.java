@@ -35,14 +35,14 @@ public class InputFieldRenderer implements Disposable {
      * @param hintText The placeholder text when the field is empty
      */
     public InputFieldRenderer(String initialText, String hintText) {
-        // Create stage with its own viewport
+        // Create stage with transparent background
         stage = new Stage(new FitViewport(Gdx.graphics.getWidth(), Gdx.graphics.getHeight()));
 
         // Create and set up the skin
         setupSkin();
 
         // Create text field style
-        TextFieldStyle textFieldStyle = createTextFieldStyle();
+        //TextFieldStyle textFieldStyle = createTextFieldStyle();
 
         // Create and configure the text field
         textField = new TextField(initialText, textFieldStyle);
@@ -70,30 +70,20 @@ public class InputFieldRenderer implements Disposable {
         whitePix.dispose();
     }
 
-    /**
-     * Creates a text field style using the skin
-     *
-     * @return The configured TextFieldStyle
-     */
-    private TextFieldStyle createTextFieldStyle() {
-        TextFieldStyle textFieldStyle = new TextFieldStyle();
-        textFieldStyle.font = new BitmapFont();  // Default font
-        textFieldStyle.fontColor = Color.WHITE;
-        textFieldStyle.cursor = skin.newDrawable("white", Color.WHITE);
-        textFieldStyle.selection = skin.newDrawable("white", new Color(0.5f, 0.5f, 0.5f, 0.5f));
-        textFieldStyle.background = skin.newDrawable("white", Color.DARK_GRAY);
-        return textFieldStyle;
-    }
-
-    /**
-     * Updates and renders the input field
-     *
-     * @param delta Time elapsed since last frame
-     */
-    public void render(float delta) {
-        stage.act(delta);
-        stage.draw();
-    }
+//    /**
+//     * Creates a text field style using the skin
+//     *
+//     * @return The configured TextFieldStyle
+//     */
+//    private TextFieldStyle createTextFieldStyle() {
+//        TextFieldStyle textFieldStyle = new TextFieldStyle();
+//        textFieldStyle.font = new BitmapFont();  // Default font
+//        textFieldStyle.fontColor = Color.WHITE;
+//        textFieldStyle.cursor = skin.newDrawable("white", Color.WHITE);
+//        textFieldStyle.selection = skin.newDrawable("white", new Color(0.5f, 0.5f, 0.5f, 0.5f));
+//        textFieldStyle.background = skin.newDrawable("white", new Color(0.2f, 0.2f, 0.2f, 0.8f));
+//        return textFieldStyle;
+//    }
 
     /**
      * Sets the position of the text field
@@ -115,42 +105,6 @@ public class InputFieldRenderer implements Disposable {
         textField.setSize(width, height);
     }
 
-    /**
-     * Gets the current text from the field
-     *
-     * @return The text content
-     */
-    public String getText() {
-        return textField.getText();
-    }
-
-    /**
-     * Sets the text in the field
-     *
-     * @param text The text to set
-     */
-    public void setText(String text) {
-        textField.setText(text);
-    }
-
-    /**
-     * Gets the stage that contains this text field
-     *
-     * @return The stage
-     */
-    public Stage getStage() {
-        return stage;
-    }
-
-    /**
-     * Handles window resizing
-     *
-     * @param width New width
-     * @param height New height
-     */
-    public void resize(int width, int height) {
-        stage.getViewport().update(width, height, true);
-    }
 
     /**
      * Disposes of resources used by this renderer
