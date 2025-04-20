@@ -3,6 +3,8 @@ package gr17.noodleio.game.states;
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -77,9 +79,6 @@ public class LobbyState extends State {
             }
         };
 
-        // Log connection info
-        Gdx.app.log("LobbyState", "Initializing with Supabase URL: " + environmentConfig.getSupabaseUrl());
-
         // Initialize lobby player API
         lobbyPlayerApi = new LobbyPlayerApi(environmentConfig);
     }
@@ -87,20 +86,76 @@ public class LobbyState extends State {
     private void createSkin() {
         skin = new Skin();
 
-        // Add default font
-        BitmapFont font = new BitmapFont();
-        skin.add("default-font", font);
+        try {
+            // Add default font
+            if (Gdx.files.internal("default.fnt").exists()) {
+                skin.add("default-font", new BitmapFont(Gdx.files.internal("default.fnt")));
+            } else {
+                skin.add("default-font", new BitmapFont());
+            }
 
-        // Create label style
-        Label.LabelStyle labelStyle = new Label.LabelStyle();
-        labelStyle.font = font;
-        labelStyle.fontColor = Color.WHITE;
-        skin.add("default", labelStyle);
+            // Create a white pixel texture for buttons and fields
+            Pixmap whitePix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            whitePix.setColor(Color.WHITE);
+            whitePix.fill();
+            skin.add("white", new Texture(whitePix));
+            whitePix.dispose();
 
-        // Create button style
-        TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
-        buttonStyle.font = font;
-        skin.add("default", buttonStyle);
+            // Load button textures if they exist
+            if (Gdx.files.internal("default-round.png").exists()) {
+                skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
+            } else {
+                // Use white pixel texture as fallback
+                skin.add("default-round", skin.get("white", Texture.class));
+            }
+
+            if (Gdx.files.internal("default-round-down.png").exists()) {
+                skin.add("default-round-down", new Texture(Gdx.files.internal("default-round-down.png")));
+            } else {
+                // Create a gray texture as fallback for the "down" state
+                Pixmap grayPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                grayPix.setColor(new Color(0.5f, 0.5f, 0.5f, 1f));
+                grayPix.fill();
+                Texture grayTex = new Texture(grayPix);
+                skin.add("default-round-down", grayTex);
+                grayPix.dispose();
+            }
+
+            // Create button styles matching MenuState
+            TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+            textButtonStyle.font = skin.getFont("default-font");
+            textButtonStyle.up = skin.newDrawable("default-round");
+            textButtonStyle.down = skin.newDrawable("default-round-down");
+            textButtonStyle.checked = skin.newDrawable("default-round-down");
+            skin.add("default", textButtonStyle);
+
+            // Create label style
+            Label.LabelStyle labelStyle = new Label.LabelStyle();
+            labelStyle.font = skin.getFont("default-font");
+            labelStyle.fontColor = Color.WHITE;
+            skin.add("default", labelStyle);
+
+        } catch (Exception e) {
+            Gdx.app.error("LobbyState", "Error loading skin resources", e);
+
+            // Create a minimal fallback skin if the above fails
+            if (skin.getFont("default-font") == null) {
+                skin.add("default-font", new BitmapFont());
+            }
+
+            if (skin.has("default", TextButton.TextButtonStyle.class) == false) {
+                TextButton.TextButtonStyle fallbackStyle = new TextButton.TextButtonStyle();
+                fallbackStyle.font = skin.getFont("default-font");
+                skin.add("default", fallbackStyle);
+            }
+
+            if (skin.has("default", Label.LabelStyle.class) == false) {
+                Label.LabelStyle labelStyle = new Label.LabelStyle();
+                labelStyle.font = skin.getFont("default-font");
+                labelStyle.fontColor = Color.WHITE;
+                skin.add("default", labelStyle);
+            }
+        }
     }
 
     private void createUI() {
@@ -136,12 +191,12 @@ public class LobbyState extends State {
         table.add(playersLabel).colspan(2).padBottom(30);
         table.row();
 
-        // Add buttons
+        // Add buttons with consistent sizing and styling to match MenuState
         TextButton startGameButton = new TextButton("Start Game", skin);
-        table.add(startGameButton).padRight(20);
+        table.add(startGameButton).width(200).height(50).padRight(20);
 
         TextButton backButton = new TextButton("Back", skin);
-        table.add(backButton).padLeft(20);
+        table.add(backButton).width(200).height(50).padLeft(20);
         table.row();
 
         // Add status label
@@ -266,6 +321,24 @@ public class LobbyState extends State {
         }
 
         if (skin != null) {
+            // Dispose textures that were created or loaded in createSkin
+            if (skin.has("white", Texture.class)) {
+                Texture tex = skin.get("white", Texture.class);
+                if (tex != null) tex.dispose();
+            }
+
+            if (skin.has("default-round", Texture.class)) {
+                Texture tex = skin.get("default-round", Texture.class);
+                if (tex != null && tex != skin.get("white", Texture.class)) {
+                    tex.dispose();
+                }
+            }
+
+            if (skin.has("default-round-down", Texture.class)) {
+                Texture tex = skin.get("default-round-down", Texture.class);
+                if (tex != null) tex.dispose();
+            }
+
             skin.dispose();
         }
     }

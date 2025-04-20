@@ -75,11 +75,11 @@ public class MenuState extends State {
             }
         };
 
-        // Log the config values
-        Gdx.app.log("MenuState", "Initializing APIs with Supabase URL: " + environmentConfig.getSupabaseUrl());
-        Gdx.app.log("MenuState", "API Key starts with: " +
-            (environmentConfig.getSupabaseKey().length() > 5 ?
-                environmentConfig.getSupabaseKey().substring(0, 10) + "..." : "invalid"));
+//        // Log the config values
+//        Gdx.app.log("MenuState", "Initializing APIs with Supabase URL: " + environmentConfig.getSupabaseUrl());
+//        Gdx.app.log("MenuState", "API Key starts with: " +
+//            (environmentConfig.getSupabaseKey().length() > 5 ?
+//                environmentConfig.getSupabaseKey().substring(0, 10) + "..." : "invalid"));
 
         // Initialize lobby API
         lobbyApi = new LobbyApi(environmentConfig);
