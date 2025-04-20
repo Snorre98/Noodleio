@@ -19,6 +19,7 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import gr17.noodleio.game.API.LobbyPlayerApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
+import gr17.noodleio.game.util.ResourceManager;
 
 public class LobbyState extends State {
     private Stage stage;
@@ -277,8 +278,13 @@ public class LobbyState extends State {
 
                     // Transition to the game state
                     if (sessionId != null) {
-                        // TODO: Create and transition to GameState
-                        statusLabel.setText("Game starting with session: " + sessionId);
+                        // Create resource manager if needed
+                        ResourceManager rm = new ResourceManager();
+                        rm.load();
+
+                        // Create and transition to PlayState
+                        PlayState playState = new PlayState(gsm, sessionId, playerId, playerName, rm);
+                        gsm.set(playState);
                     } else {
                         statusLabel.setText("Game started but couldn't get session ID");
                     }

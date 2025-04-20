@@ -24,6 +24,19 @@ import kotlin.coroutines.CoroutineContext
  */
 class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
 
+    private fun extractNumberValue(value: Any?): Number {
+        return when (value) {
+            is Number -> value
+            else -> {
+                try {
+                    // Try to convert the value to a string and then to a double
+                    value.toString().toDoubleOrNull() ?: 0.0
+                } catch (e: Exception) {
+                    0.0 // Default value if parsing fails
+                }
+            }
+        }
+    }
     // Coroutine context for async operations
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + SupervisorJob()
@@ -82,11 +95,13 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
             // Subscribe to channels in a coroutine
             launch {
                 try {
-                    playerStateChannel?.subscribe(blockUntilSubscribed = true)
-                    gameSessionChannel?.subscribe(blockUntilSubscribed = true)
-
+                    // Set up listeners BEFORE subscribing to channels
                     setupPlayerStateListener()
                     setupGameSessionListener()
+
+                    // Now subscribe to the channels
+                    playerStateChannel?.subscribe(blockUntilSubscribed = true)
+                    gameSessionChannel?.subscribe(blockUntilSubscribed = true)
 
                     // Initial data load
                     loadInitialGameState()
@@ -163,7 +178,6 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                     schema = "public"
                 ) {
                     table = "PlayerGameState"
-                    // Fix: Use proper filtering method instead of direct assignment
                     filter("session_id", FilterOperator.EQ, sessionId!!)
                 }
 
@@ -176,9 +190,9 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                                     id = record["id"].toString(),
                                     session_id = record["session_id"].toString(),
                                     player_id = record["player_id"].toString(),
-                                    x_pos = (record["x_pos"] as Number).toFloat(),
-                                    y_pos = (record["y_pos"] as Number).toFloat(),
-                                    score = (record["score"] as Number).toInt()
+                                    x_pos = extractNumberValue(record["x_pos"]).toFloat(),
+                                    y_pos = extractNumberValue(record["y_pos"]).toFloat(),
+                                    score = extractNumberValue(record["score"]).toInt()
                                 )
 
                                 // Update local state
@@ -196,9 +210,9 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                                     id = record["id"].toString(),
                                     session_id = record["session_id"].toString(),
                                     player_id = record["player_id"].toString(),
-                                    x_pos = (record["x_pos"] as Number).toFloat(),
-                                    y_pos = (record["y_pos"] as Number).toFloat(),
-                                    score = (record["score"] as Number).toInt()
+                                    x_pos = extractNumberValue(record["x_pos"]).toFloat(),
+                                    y_pos = extractNumberValue(record["y_pos"]).toFloat(),
+                                    score = extractNumberValue(record["score"]).toInt()
                                 )
 
                                 // Update local state
@@ -266,9 +280,9 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
                         val gameSession = GameSession(
                             id = record["id"].toString(),
                             lobby_id = record["lobby_id"].toString(),
-                            winning_score = (record["winning_score"] as Number).toInt(),
-                            map_length = (record["map_length"] as Number).toInt(),
-                            map_height = (record["map_height"] as Number).toInt(),
+                            winning_score = extractNumberValue(record["winning_score"]).toInt(),
+                            map_length = extractNumberValue(record["map_length"]).toInt(),
+                            map_height = extractNumberValue(record["map_height"]).toInt(),
                             started_at = currentSession?.started_at ?: kotlinx.datetime.Clock.System.now(),
                             ended_at = if (endedAt != null) kotlinx.datetime.Clock.System.now() else null
                         )
