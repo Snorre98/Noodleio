@@ -40,22 +40,24 @@ create table public."GameSession" (
 
 
 /*
-local GameSession state includes:
-- GameSession fields
-- all player states for the lobby
+
+CREATE OR REPLACE FUNCTION check_winning_score() RETURNS TRIGGER AS $$
+BEGIN
+  -- Check if the player's score equals or exceeds the winning score
+  IF NEW.score >= (SELECT winning_score FROM "GameSession" WHERE id = NEW.session_id) THEN
+    -- Update the GameSession with ended_at timestamp if not already set
+    UPDATE "GameSession"
+    SET ended_at = NOW()
+    WHERE id = NEW.session_id AND ended_at IS NULL;
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Create a trigger to run this function whenever a player's score is updated
+CREATE TRIGGER check_win_condition
+AFTER UPDATE OF score ON "PlayerGameState"
+FOR EACH ROW
+EXECUTE FUNCTION check_winning_score();
+
 * */
-
-
-/*
------- Client function ----
-It's important that lobby_id is kept locally so that we quickly can get game session and players by lobby_id.
-
-Spawn enough food for all players to be able to win. If two players: spawn 2*50 food in random places.
-- the random food generation is done on the lobby_owner client, and the data is pushed to the database by calling a db function spawn_food
-    - this happens when the lobby_owner creates a game session
-*/
-
-/*
----- DB function ----
-spawn_food takes a list of random food positions
-*/

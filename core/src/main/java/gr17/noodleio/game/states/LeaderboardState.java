@@ -105,16 +105,22 @@ public class LeaderboardState extends State {
             if (Gdx.files.internal("default-round.png").exists()) {
                 skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
             } else {
-                // Use white pixel texture as fallback
-                skin.add("default-round", skin.get("white", Texture.class));
+                // Create a black texture for buttons
+                Pixmap blackPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                blackPix.setColor(Color.BLACK);
+                blackPix.fill();
+                Texture blackTex = new Texture(blackPix);
+                skin.add("default-round", blackTex);
+                blackPix.dispose();
             }
 
+            // Similarly for the down state texture
             if (Gdx.files.internal("default-round-down.png").exists()) {
                 skin.add("default-round-down", new Texture(Gdx.files.internal("default-round-down.png")));
             } else {
-                // Create a gray texture as fallback for the "down" state
+                // Create a dark gray texture for the pressed button state
                 Pixmap grayPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-                grayPix.setColor(new Color(0.5f, 0.5f, 0.5f, 1f));
+                grayPix.setColor(new Color(0.2f, 0.2f, 0.2f, 1f)); // Dark gray
                 grayPix.fill();
                 Texture grayTex = new Texture(grayPix);
                 skin.add("default-round-down", grayTex);
@@ -182,7 +188,7 @@ public class LeaderboardState extends State {
     }
 
     private void setupLeaderboardDisplay() {
-        Label header = new Label("PLAYER : SCORE", skin);
+        Label header = new Label("PLAYER : SCORE (TIME)", skin);
         table.add(header).padBottom(10);
         table.row();
 
@@ -219,7 +225,6 @@ public class LeaderboardState extends State {
         try {
             // Fetch top entries from the leaderboard
             String result = leaderboardApi.fetchLeaderboard(TOP_ENTRIES);
-            Gdx.app.log("LeaderboardState", "Leaderboard fetch result: " + result);
 
             // Parse and display entries
             updateLeaderboardDisplay(result);
@@ -233,14 +238,17 @@ public class LeaderboardState extends State {
         String[] lines = leaderboardText.split("\\r?\\n");
 
         int labelIndex = 0;
-        for (String line : lines) {
+        // Skip header lines
+        int startLine = 2; // Skip "TOP x PLAYERS" and "------------------------"
+
+        for (int i = startLine; i < lines.length; i++) {
             if (labelIndex >= TOP_ENTRIES) break;
 
-            // Skip non-data lines like the header
-            if (!line.contains(":")) continue;
+            // Skip non-data lines
+            if (!lines[i].contains(":")) continue;
 
             if (leaderboardLabels[labelIndex] != null) {
-                leaderboardLabels[labelIndex].setText(line.trim());
+                leaderboardLabels[labelIndex].setText(lines[i].trim());
             }
 
             labelIndex++;
