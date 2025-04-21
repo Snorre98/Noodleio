@@ -120,6 +120,18 @@ public class PlayerGameStateApi {
         }
     }
 
+    public String updatePlayerScore(String playerId, String sessionId, int newScore) {
+        try {
+            // Call the database function to update the player's score
+            String result = playerGameStateViews.updatePlayerScore(playerId, sessionId, newScore);
+            return result;
+        } catch (Exception e) {
+            String errorMsg = "Error updating player score: " + e.getMessage();
+            e.printStackTrace();
+            return errorMsg;
+        }
+    }
+
     /**
      * Gets the most recent move player message
      * @return The move player status message

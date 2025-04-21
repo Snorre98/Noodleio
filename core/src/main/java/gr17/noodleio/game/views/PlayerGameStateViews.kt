@@ -174,4 +174,33 @@ class PlayerGameStateViews(private val environmentConfig: EnvironmentConfig) {
         }
     }
 
+    fun updatePlayerScore(playerId: String, sessionId: String, newScore: Int): String {
+        println("DEBUG PlayerGameStateViews: Updating player $playerId score to $newScore in session $sessionId")
+
+        return runBlocking {
+            try {
+                // Build the parameters for the update
+                val jsonData = buildJsonObject {
+                    put("score", newScore)
+                }
+
+                // Update the player's score in the PlayerGameState table
+                serviceManager.db
+                    .from("PlayerGameState")
+                    .update(jsonData) {
+                        filter {
+                            eq("player_id", playerId)
+                            eq("session_id", sessionId)
+                        }
+                    }
+
+                "Player score updated successfully to $newScore"
+            } catch (e: Exception) {
+                println("DEBUG PlayerGameStateViews: Error updating player score: ${e.message}")
+                e.printStackTrace()
+                "Error updating player score: ${e.message}"
+            }
+        }
+    }
+
 }

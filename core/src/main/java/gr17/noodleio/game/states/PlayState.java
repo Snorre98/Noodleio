@@ -55,6 +55,11 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private ConcurrentHashMap<String, PlayerGameState> players = new ConcurrentHashMap<>();
     private float movementCooldown = 0;
 
+    private int lastReportedScore = 0;
+    private float scoreUpdateTimer = 0;
+    private static final float SCORE_UPDATE_INTERVAL = 1.0f; // Update score every second
+
+
     // Cursor tracking
     private Vector2 cursorPosition = new Vector2();
     private Vector2 targetPosition = new Vector2();
@@ -63,7 +68,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
     // Speed boost status
     private boolean hasSpeedBoost = false;
-    private float speedMultiplier = 1.0f;
+    private float speedMultiplier = 1.0f; // TODO
 
     // APIs
     private RealtimeGameStateApi realtimeGameStateApi;
@@ -129,6 +134,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
                 prevPos.set(tempPos);
             }
+
         }
 
         public void render(ShapeRenderer shapeRenderer) {
@@ -317,6 +323,13 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             }
         }
 
+        // Update score in the database if it has changed
+        scoreUpdateTimer += dt;
+        if (scoreUpdateTimer >= SCORE_UPDATE_INTERVAL) {
+            scoreUpdateTimer = 0;
+            updateScoreIfNeeded();
+        }
+
         // Update other player snakes
         updateOtherPlayerSnakes();
 
@@ -328,6 +341,18 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Update camera position to follow player
         updateCameraPosition();
+    }
+
+    private void updateScoreIfNeeded() {
+        if (localSnake != null && localSnake.score != lastReportedScore) {
+            // Score has changed, update it in the database
+            int newScore = localSnake.score;
+            playerGameStateApi.updatePlayerScore(playerId, sessionId, newScore);
+            lastReportedScore = newScore;
+
+            // Log the score update
+            Gdx.app.log("PlayState", "Updated score to " + newScore);
+        }
     }
 
     /**
