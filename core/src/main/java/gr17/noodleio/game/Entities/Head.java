@@ -1,7 +1,6 @@
 package gr17.noodleio.game.Entities;
 
 import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -61,9 +60,4 @@ public class Head extends BodyPart{
         return collisionShape.contains(foodColShape);
     }
 
-    // Note: We don't use this render method anymore since rendering is batched in PlayState
-    @Override
-    public void render(OrthographicCamera cam){
-        // Left empty as batched rendering is handled by PlayState
-    }
 }
