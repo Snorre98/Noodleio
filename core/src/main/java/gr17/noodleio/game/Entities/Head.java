@@ -2,7 +2,6 @@ package gr17.noodleio.game.Entities;
 
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
@@ -14,7 +13,7 @@ public class Head extends BodyPart{
     public Circle magnetFoodShape;
     public int maxAcc;
     public int maxVel;
-    
+
     // Cache for performance optimization
     private final Vector2 tempVec = new Vector2();
 
@@ -32,22 +31,22 @@ public class Head extends BodyPart{
         // Use temporary vector to avoid allocations
         tempVec.set(mousePos.x, mousePos.y);
         tempVec.sub(pos);
-        
+
         // Only calculate new acceleration if significant movement
         if (tempVec.len2() > 0.01f) {
             tempVec.nor().scl(maxAcc);
             acc.set(tempVec);
-            
+
             vel.add(acc);
-            
+
             // Apply velocity limit
             if (vel.len2() > maxVel * maxVel) {
                 vel.nor().scl(maxVel);
             }
-            
+
             // Update position
             pos.add(vel);
-            
+
             // Update collision shapes
             collisionShape.setPosition(pos.x, pos.y);
             magnetFoodShape.setPosition(pos.x, pos.y);
