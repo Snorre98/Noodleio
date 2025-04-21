@@ -22,6 +22,7 @@ import gr17.noodleio.game.util.ResourceManager;
 
 // Import snake-related classes
 import gr17.noodleio.game.Entities.Snake;
+import gr17.noodleio.game.Entities.BodyPart;
 import gr17.noodleio.game.Entities.Food.Food;
 import gr17.noodleio.game.Entities.Food.PowerUp;
 import gr17.noodleio.game.Entities.Food.SpeedBoost;
@@ -42,6 +43,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private static final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.3f, 1f);
     private static final Color CURSOR_TARGET_COLOR = new Color(1f, 1f, 1f, 0.3f);
     private static final float CURSOR_TARGET_SIZE = 10f;
+    private static final int OTHER_PLAYER_SNAKE_SEGMENTS = 5;  // Number of body segments for other players
+    private static final Color OTHER_PLAYER_HEAD_COLOR = new Color(0.2f, 0.4f, 0.8f, 1f);  // Blue head
+    private static final Color OTHER_PLAYER_BODY_COLOR = new Color(0.1f, 0.3f, 0.7f, 1f);  // Darker blue body
 
     // Game state
     private String sessionId;
@@ -74,7 +78,71 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private Snake localSnake;
     private ArrayList<Food> foods = new ArrayList<>();
     private ArrayList<PowerUp> powerUps = new ArrayList<>();
-    private Map<String, Snake> otherPlayerSnakes = new HashMap<>();
+    private Map<String, OtherPlayerSnake> otherPlayerSnakes = new HashMap<>();
+
+    /**
+     * Simple class to represent other players' snakes with head and body
+     */
+    private class OtherPlayerSnake {
+        public Vector2 headPosition = new Vector2();
+        public ArrayList<Vector2> bodyPositions = new ArrayList<>();
+        public Vector2 previousPosition = new Vector2();
+        public float snakeSize = 15f;  // Same size as the local player's snake
+
+        public OtherPlayerSnake(float x, float y) {
+            headPosition.set(x, y);
+            previousPosition.set(x, y);
+
+            // Initialize body segments behind the head
+            for (int i = 0; i < OTHER_PLAYER_SNAKE_SEGMENTS; i++) {
+                bodyPositions.add(new Vector2(x - (i+1) * snakeSize, y));
+            }
+        }
+
+        public void update(float x, float y) {
+            // Calculate movement direction
+            Vector2 direction = new Vector2(x, y).sub(headPosition);
+
+            // Skip update if no movement
+            if (direction.len() < 0.01f) return;
+
+            // Save previous position before updating
+            previousPosition.set(headPosition);
+
+            // Update head position
+            headPosition.set(x, y);
+
+            // Update body positions (follow-the-leader)
+            Vector2 prevPos = new Vector2(headPosition);
+            Vector2 tempPos = new Vector2();
+
+            for (int i = 0; i < bodyPositions.size(); i++) {
+                Vector2 currPos = bodyPositions.get(i);
+                tempPos.set(currPos);
+
+                // Calculate body segment spacing based on direction
+                Vector2 bodyDirection = new Vector2(prevPos).sub(currPos);
+                if (bodyDirection.len() > 0.01f) {
+                    bodyDirection.nor().scl(snakeSize + 8); // Same spacing as local snake
+                    currPos.set(prevPos).sub(bodyDirection);
+                }
+
+                prevPos.set(tempPos);
+            }
+        }
+
+        public void render(ShapeRenderer shapeRenderer) {
+            // Draw body first (so head draws on top)
+            shapeRenderer.setColor(OTHER_PLAYER_BODY_COLOR);
+            for (Vector2 bodyPos : bodyPositions) {
+                shapeRenderer.circle(bodyPos.x, bodyPos.y, snakeSize, 15);
+            }
+
+            // Draw head
+            shapeRenderer.setColor(OTHER_PLAYER_HEAD_COLOR);
+            shapeRenderer.circle(headPosition.x, headPosition.y, snakeSize, 15);
+        }
+    }
 
     /**
      * Creates a new play state.
@@ -249,6 +317,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             }
         }
 
+        // Update other player snakes
+        updateOtherPlayerSnakes();
+
         // Update food interactions
         updateFoodInteractions();
 
@@ -257,6 +328,56 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Update camera position to follow player
         updateCameraPosition();
+    }
+
+    /**
+     * Updates the snake representations for other players
+     */
+    private void updateOtherPlayerSnakes() {
+        for (PlayerGameState player : players.values()) {
+            // Get clean player ID
+            String pid = player.getPlayer_id().replace("\"", "");
+
+            // Skip local player
+            if (pid.equals(playerId)) continue;
+
+            // Convert from game coordinates to screen coordinates
+            Vector2 screenPos = gameToScreenCoordinates(
+                new Vector2(player.getX_pos(), player.getY_pos()));
+
+            // Create or update other player snake
+            OtherPlayerSnake otherSnake = otherPlayerSnakes.get(pid);
+            if (otherSnake == null) {
+                // Create new snake for this player
+                otherSnake = new OtherPlayerSnake(screenPos.x, screenPos.y);
+                otherPlayerSnakes.put(pid, otherSnake);
+            } else {
+                // Update existing snake
+                otherSnake.update(screenPos.x, screenPos.y);
+            }
+        }
+
+        // Remove snakes for players who are no longer in the game
+        ArrayList<String> playersToRemove = new ArrayList<>();
+        for (String pid : otherPlayerSnakes.keySet()) {
+            boolean playerExists = false;
+            for (PlayerGameState player : players.values()) {
+                String currentPid = player.getPlayer_id().replace("\"", "");
+                if (currentPid.equals(pid)) {
+                    playerExists = true;
+                    break;
+                }
+            }
+
+            if (!playerExists) {
+                playersToRemove.add(pid);
+            }
+        }
+
+        // Remove snakes for players who left
+        for (String pid : playersToRemove) {
+            otherPlayerSnakes.remove(pid);
+        }
     }
 
     /**
@@ -498,12 +619,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             p.render(cam);
         }
 
-        // Render local snake if it exists
-        if (localSnake != null) {
-            localSnake.render(cam);
-        }
-
-        // Begin shape rendering
+        // Begin shape rendering for cursor target
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         // Draw cursor target if movement is active
@@ -525,10 +641,15 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             }
         }
 
-        // Render other players as simplified snakes
-        renderOtherPlayers();
-
         shapes.end();
+
+        // Render other player snakes
+        renderOtherPlayerSnakes();
+
+        // Render local snake if it exists
+        if (localSnake != null) {
+            localSnake.render(cam);
+        }
     }
 
     /**
@@ -594,42 +715,30 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     /**
      * Renders other players as simplified snakes
      */
-    private void renderOtherPlayers() {
-        for (PlayerGameState player : players.values()) {
-            // Get clean player ID
-            String pid = player.getPlayer_id().replace("\"", "");
-            boolean isLocalPlayer = pid.equals(playerId);
+    private void renderOtherPlayerSnakes() {
+        // Begin shape rendering for other player snakes
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
 
-            // Skip the local player as it's rendered as a snake
-            if (isLocalPlayer) continue;
+        // Render all other player snakes
+        for (Map.Entry<String, OtherPlayerSnake> entry : otherPlayerSnakes.entrySet()) {
+            String pid = entry.getKey();
+            OtherPlayerSnake snake = entry.getValue();
 
-            // Convert from game coordinates to screen coordinates
-            Vector2 screenPos = gameToScreenCoordinates(
-                new Vector2(player.getX_pos(), player.getY_pos()));
-
-            // Draw player (simplified for now)
-            shapes.setColor(Color.BLUE); // Other players are blue
-            shapes.circle(screenPos.x, screenPos.y, 15); // Simple circle for now
-
-            // Draw player ID/name above player
-            // (Drawing text is done in a separate pass with SpriteBatch)
+            // Render the snake (head and body)
+            snake.render(shapes);
         }
+
+        shapes.end();
 
         // Draw player names above other players
         gameBatch.begin();
-        for (PlayerGameState player : players.values()) {
-            String pid = player.getPlayer_id().replace("\"", "");
-            boolean isLocalPlayer = pid.equals(playerId);
-
-            // Skip the local player
-            if (isLocalPlayer) continue;
-
-            Vector2 screenPos = gameToScreenCoordinates(
-                new Vector2(player.getX_pos(), player.getY_pos()));
+        for (Map.Entry<String, OtherPlayerSnake> entry : otherPlayerSnakes.entrySet()) {
+            String pid = entry.getKey();
+            OtherPlayerSnake snake = entry.getValue();
 
             font.setColor(Color.WHITE);
             String displayName = pid.substring(0, Math.min(4, pid.length()));
-            font.draw(gameBatch, displayName, screenPos.x - 15, screenPos.y - 25);
+            font.draw(gameBatch, displayName, snake.headPosition.x - 15, snake.headPosition.y + 30);
         }
         gameBatch.end();
     }
