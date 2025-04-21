@@ -1,8 +1,6 @@
-package gr17.noodleio.game.Entities;
+package gr17.noodleio.game.Entities.Food;
 
 
-import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.audio.Sound;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -15,13 +13,27 @@ public class Food {
     public Circle collisionShape;
     public final int size = 12;
     public boolean isEat;
+    public Vector2 vel;
     //Sound sound = Gdx.audio.newSound(Gdx.files.internal("sounds/eat.mp3"));
 
     public Food(Vector2 pos){
         this.pos = pos;
+        vel = new Vector2(0,0);
         shape = new ShapeRenderer();
         collisionShape = new Circle(pos.x, pos.y, size);
         isEat = false;
+    }
+
+    public void update(){
+        pos.add(vel);
+        collisionShape.setPosition(pos.x, pos.y);
+    }
+
+    public void getAttracted(Vector2 snakePos){
+        Vector2 acc = snakePos.sub(pos);
+        acc.setLength(1);
+        vel.add(acc);
+        vel.setLength(4);
     }
 
 
