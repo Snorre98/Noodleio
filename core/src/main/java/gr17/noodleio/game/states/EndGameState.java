@@ -1,7 +1,10 @@
 package gr17.noodleio.game.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.Pixmap;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.scenes.scene2d.Actor;
@@ -31,12 +34,19 @@ public class EndGameState extends State {
     private int placement;
     private ResourceManager rm;
 
+    private LeaderboardApi leaderboardApi;
+
     public EndGameState(GameStateManager gsm, Array<PlayerResult> results, String playerName, int placement, ResourceManager rm, GameSession gameSession) {
         super(gsm);
+        Gdx.app.log("EndGameState", "Initializing EndGameState");
+
         this.results = results;
         this.playerName = playerName;
         this.placement = placement;
         this.rm = rm;
+
+        // Initialize API first
+        initializeApi();
 
         // Get the player's score
         int playerScore = 0;
@@ -47,66 +57,32 @@ public class EndGameState extends State {
             }
         }
 
+        // Save score to leaderboard if game has ended
         if (gameSession != null && gameSession.getEnded_at() != null) {
             saveScoreToLeaderboard(playerName, playerScore, gameSession);
         }
 
+        // Create stage with viewport that matches our camera
         stage = new Stage(new FitViewport(800, 480, cam));
         Gdx.input.setInputProcessor(stage);
 
+        // Create skin with required resources
+        setupSkin();
 
-        skin = new Skin();
-        skin.add("font", rm.getDefaultFont());
-
-        TextButton.TextButtonStyle buttonStyle = new TextButton.TextButtonStyle();
-        buttonStyle.font = rm.getDefaultFont();
-        skin.add("default", buttonStyle);
-
+        // Create table for UI layout
         table = new Table();
         table.setFillParent(true);
         stage.addActor(table);
 
-
-        Label.LabelStyle labelStyle = new Label.LabelStyle(rm.getDefaultFont(), null);
-        String titleText = (placement == 1) ? "YOU WON!" : "You reached place #" + placement;
-        Label titleLabel = new Label(titleText, labelStyle);
-        table.add(titleLabel).padBottom(50);
-        table.row();
-
-
-        for (int i = 0; i < results.size; i++) {
-            PlayerResult r = results.get(i);
-
-
-            BitmapFont font = new BitmapFont();
-            font = rm.getDefaultFont();
-            Label.LabelStyle resultStyle = new Label.LabelStyle(font, null);
-
-            if (r.name.equals(playerName)) {
-                font.getData().setScale(1.2f);
-            } else {
-                font.getData().setScale(1.0f);
-            }
-
-            Label resultLabel = new Label((i + 1) + ". " + r.name + " - " + r.score + " points", resultStyle);
-            table.add(resultLabel).padBottom(10);
-            table.row();
-        }
-
-        TextButton menuButton = new TextButton("Return to Menu", skin);
-        table.add(menuButton).padTop(30).width(200).height(50);
-
-        menuButton.addListener(new ChangeListener() {
-            @Override
-            public void changed(ChangeEvent event, Actor actor) {
-                gsm.set(new MenuState(gsm));
-            }
-        });
+        // Setup UI components
+        setupTitle();
+        setupResultsDisplay();
+        setupButtons();
     }
 
-    private void saveScoreToLeaderboard(String playerName, int score, GameSession gameSession) {
+    private void initializeApi() {
         try {
-            // Create environment config
+            // Create environment config directly using Config
             EnvironmentConfig environmentConfig = new EnvironmentConfig() {
                 @Override
                 public String getSupabaseUrl() {
@@ -119,20 +95,207 @@ public class EndGameState extends State {
                 }
             };
 
-            // Initialize leaderboard API
-            LeaderboardApi leaderboardApi = new LeaderboardApi(environmentConfig);
+            // Initialize the leaderboard API
+            leaderboardApi = new LeaderboardApi(environmentConfig);
+            Gdx.app.log("EndGameState", "LeaderboardApi initialized successfully");
+        } catch (Exception e) {
+            Gdx.app.error("EndGameState", "Error initializing LeaderboardApi", e);
+        }
+    }
 
-            // Record the score with game duration
-            leaderboardApi.addLeaderboardEntryFromSession(playerName, score, gameSession);
+    private void setupSkin() {
+        try {
+            skin = new Skin();
 
-            Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName);
+            // Load font and textures safely - check if they exist first
+            if (Gdx.files.internal("default.fnt").exists()) {
+                skin.add("default-font", new BitmapFont(Gdx.files.internal("default.fnt")));
+            } else {
+                // If not found, create a default font
+                skin.add("default-font", new BitmapFont());
+            }
+
+            // Create a white pixel texture for UI elements
+            Pixmap whitePix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+            whitePix.setColor(Color.WHITE);
+            whitePix.fill();
+            skin.add("white", new Texture(whitePix));
+            whitePix.dispose();
+
+            // Load button textures if they exist
+            if (Gdx.files.internal("default-round.png").exists()) {
+                skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
+            } else {
+                // Use white pixel texture as fallback
+                skin.add("default-round", skin.get("white", Texture.class));
+            }
+
+            if (Gdx.files.internal("default-round-down.png").exists()) {
+                skin.add("default-round-down", new Texture(Gdx.files.internal("default-round-down.png")));
+            } else {
+                // Create a gray texture as fallback for the "down" state
+                Pixmap grayPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                grayPix.setColor(new Color(0.5f, 0.5f, 0.5f, 1f));
+                grayPix.fill();
+                Texture grayTex = new Texture(grayPix);
+                skin.add("default-round-down", grayTex);
+                grayPix.dispose();
+            }
+
+            // Create button styles
+            TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
+            textButtonStyle.font = skin.getFont("default-font");
+            textButtonStyle.up = skin.newDrawable("default-round");
+            textButtonStyle.down = skin.newDrawable("default-round-down");
+            textButtonStyle.checked = skin.newDrawable("default-round-down");
+            skin.add("default", textButtonStyle);
+
+            // Create label style
+            Label.LabelStyle labelStyle = new Label.LabelStyle();
+            labelStyle.font = skin.getFont("default-font");
+            labelStyle.fontColor = Color.WHITE;
+            skin.add("default", labelStyle);
+
+        } catch (Exception e) {
+            Gdx.app.error("EndGameState", "Error loading skin resources", e);
+
+            // Create a minimal fallback skin
+            skin = new Skin();
+            skin.add("default-font", new BitmapFont());
+
+            TextButton.TextButtonStyle fallbackStyle = new TextButton.TextButtonStyle();
+            fallbackStyle.font = skin.getFont("default-font");
+            skin.add("default", fallbackStyle);
+
+            Label.LabelStyle labelStyle = new Label.LabelStyle();
+            labelStyle.font = skin.getFont("default-font");
+            labelStyle.fontColor = Color.WHITE;
+            skin.add("default", labelStyle);
+        }
+    }
+
+    private void setupTitle() {
+        try {
+            // Add title to the top of the screen
+            BitmapFont titleFont;
+            if (Gdx.files.internal("default.fnt").exists()) {
+                titleFont = new BitmapFont(Gdx.files.internal("default.fnt"));
+            } else {
+                titleFont = new BitmapFont();
+            }
+            titleFont.getData().setScale(2.0f);  // Make the title larger
+
+            // Create a label style for the title
+            Label.LabelStyle titleStyle = new Label.LabelStyle();
+            titleStyle.font = titleFont;
+            titleStyle.fontColor = Color.WHITE;
+
+            // Create title based on placement
+            String titleText = (placement == 1) ? "YOU WON!" : "You reached place #" + placement;
+            Label titleLabel = new Label(titleText, titleStyle);
+
+            // Add the title to the table
+            table.add(titleLabel).padBottom(40);
+            table.row();
+        } catch (Exception e) {
+            Gdx.app.error("EndGameState", "Error creating title", e);
+            // Add a simple title as fallback
+            Label titleLabel = new Label("GAME OVER", new Label.LabelStyle(skin.getFont("default-font"), Color.WHITE));
+            table.add(titleLabel).padBottom(40);
+            table.row();
+        }
+    }
+
+    private void setupResultsDisplay() {
+        // Add results header
+        Label header = new Label("RESULTS", skin);
+        table.add(header).padBottom(20);
+        table.row();
+
+        // Display each player's result
+        for (int i = 0; i < results.size; i++) {
+            PlayerResult result = results.get(i);
+
+            // Create label style for this entry
+            Label.LabelStyle resultStyle = new Label.LabelStyle(skin.getFont("default-font"), Color.WHITE);
+
+            // Highlight the current player's row
+            if (result.name.equals(playerName)) {
+                try {
+                    BitmapFont playerFont = new BitmapFont();
+                    if (skin.has("default-font", BitmapFont.class)) {
+                        playerFont = new BitmapFont(skin.getFont("default-font").getData().getFontFile());
+                    }
+                    playerFont.getData().setScale(1.2f);
+                    playerFont.setColor(Color.YELLOW);
+                    resultStyle.font = playerFont;
+                } catch (Exception e) {
+                    Gdx.app.error("EndGameState", "Error creating custom font", e);
+                    // Just use the default font with a different color if there's an error
+                    resultStyle.fontColor = Color.YELLOW;
+                }
+            }
+
+            // Create and add the result label
+            Label resultLabel = new Label((i + 1) + ". " + result.name + " - " + result.score + " points", resultStyle);
+            table.add(resultLabel).padBottom(10).left();
+            table.row();
+        }
+    }
+
+    private void setupButtons() {
+        // Add back button
+        TextButton backButton = new TextButton("Back to Menu", skin);
+        table.add(backButton).width(200).height(50).padTop(30);
+
+        // Add button listener
+        backButton.addListener(new ChangeListener() {
+            @Override
+            public void changed(ChangeEvent event, Actor actor) {
+                // Return to menu state
+                gsm.set(new MenuState(gsm));
+            }
+        });
+    }
+
+    private void saveScoreToLeaderboard(String playerName, int score, GameSession gameSession) {
+        try {
+            if (leaderboardApi == null) {
+                Gdx.app.error("EndGameState", "Cannot save score: LeaderboardApi is null");
+                return;
+            }
+
+            // Calculate game duration if possible
+            Double durationSeconds = null;
+            if (gameSession != null && gameSession.getStarted_at() != null && gameSession.getEnded_at() != null) {
+                // Calculate the duration in seconds between start and end times
+                long startMillis = gameSession.getStarted_at().toEpochMilliseconds();
+                long endMillis = gameSession.getEnded_at().toEpochMilliseconds();
+                durationSeconds = (endMillis - startMillis) / 1000.0;
+            }
+
+            // Check if the session-specific method exists
+            try {
+                // Try to call the specific method if it exists
+                leaderboardApi.addLeaderboardEntryFromSession(playerName, score, gameSession);
+                Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName + " using session data");
+            } catch (NoSuchMethodError e) {
+                // Fallback to standard method if the specialized one doesn't exist
+                Gdx.app.log("EndGameState", "addLeaderboardEntryFromSession not found, using standard method");
+
+                // Call the three-argument version with duration
+                leaderboardApi.addLeaderboardEntry(playerName, score, durationSeconds);
+                Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName);
+            }
         } catch (Exception e) {
             Gdx.app.error("EndGameState", "Error saving score to leaderboard", e);
         }
     }
 
     @Override
-    protected void handleInput() {}
+    protected void handleInput() {
+        // Input is handled by Scene2D stage
+    }
 
     @Override
     public void update(float dt) {
@@ -141,14 +304,40 @@ public class EndGameState extends State {
 
     @Override
     public void render(SpriteBatch sb) {
-        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1);
+        // Clear screen
+        Gdx.gl.glClearColor(0.1f, 0.1f, 0.1f, 1f);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+        // Draw stage
         stage.draw();
     }
 
     @Override
     public void dispose() {
-        stage.dispose();
-        skin.dispose();
+        if (stage != null) {
+            stage.dispose();
+        }
+
+        if (skin != null) {
+            // Dispose textures that were created or loaded
+            if (skin.has("white", Texture.class)) {
+                Texture tex = skin.get("white", Texture.class);
+                if (tex != null) tex.dispose();
+            }
+
+            if (skin.has("default-round", Texture.class)) {
+                Texture tex = skin.get("default-round", Texture.class);
+                if (tex != null && tex != skin.get("white", Texture.class)) {
+                    tex.dispose();
+                }
+            }
+
+            if (skin.has("default-round-down", Texture.class)) {
+                Texture tex = skin.get("default-round-down", Texture.class);
+                if (tex != null) tex.dispose();
+            }
+
+            skin.dispose();
+        }
     }
 }

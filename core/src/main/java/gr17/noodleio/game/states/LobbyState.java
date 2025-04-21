@@ -93,35 +93,42 @@ public class LobbyState extends State {
     }
 
     private void createSkin() {
-        skin = new Skin();
-
         try {
-            // Add default font
+            skin = new Skin();
+
+            // Load font and textures safely - check if they exist first
             if (Gdx.files.internal("default.fnt").exists()) {
                 skin.add("default-font", new BitmapFont(Gdx.files.internal("default.fnt")));
             } else {
+                // If not found, create a default font
                 skin.add("default-font", new BitmapFont());
             }
 
-            // Create a white pixel texture for buttons and fields
+            // Create a white pixel texture for UI elements
             Pixmap whitePix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
             whitePix.setColor(Color.WHITE);
             whitePix.fill();
             skin.add("white", new Texture(whitePix));
             whitePix.dispose();
 
-            // Load button textures if they exist
+            // Load button textures if they exist - USING THE SAME APPROACH AS LOBBYSTATE
             if (Gdx.files.internal("default-round.png").exists()) {
                 skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
             } else {
-                // Use white pixel texture as fallback
-                skin.add("default-round", skin.get("white", Texture.class));
+                // Create a black texture for buttons
+                Pixmap blackPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                blackPix.setColor(Color.BLACK);
+                blackPix.fill();
+                Texture blackTex = new Texture(blackPix);
+                skin.add("default-round", blackTex);
+                blackPix.dispose();
             }
 
+            // Important - must add default-round-down BEFORE using it
             if (Gdx.files.internal("default-round-down.png").exists()) {
                 skin.add("default-round-down", new Texture(Gdx.files.internal("default-round-down.png")));
             } else {
-                // Create a gray texture as fallback for the "down" state
+                // Create a gray texture as fallback for the "down" state - same as LobbyState
                 Pixmap grayPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
                 grayPix.setColor(new Color(0.5f, 0.5f, 0.5f, 1f));
                 grayPix.fill();
@@ -130,7 +137,7 @@ public class LobbyState extends State {
                 grayPix.dispose();
             }
 
-            // Create button styles matching MenuState
+            // Create button styles
             TextButton.TextButtonStyle textButtonStyle = new TextButton.TextButtonStyle();
             textButtonStyle.font = skin.getFont("default-font");
             textButtonStyle.up = skin.newDrawable("default-round");
@@ -145,7 +152,7 @@ public class LobbyState extends State {
             skin.add("default", labelStyle);
 
         } catch (Exception e) {
-            Gdx.app.error("LobbyState", "Error loading skin resources", e);
+            Gdx.app.error("LeaderboardState", "Error loading skin resources", e);
 
             // Create a minimal fallback skin if the above fails
             if (skin.getFont("default-font") == null) {

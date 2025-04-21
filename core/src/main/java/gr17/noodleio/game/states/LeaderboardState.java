@@ -105,16 +105,22 @@ public class LeaderboardState extends State {
             if (Gdx.files.internal("default-round.png").exists()) {
                 skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
             } else {
-                // Use white pixel texture as fallback
-                skin.add("default-round", skin.get("white", Texture.class));
+                // Create a black texture for buttons
+                Pixmap blackPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                blackPix.setColor(Color.BLACK);
+                blackPix.fill();
+                Texture blackTex = new Texture(blackPix);
+                skin.add("default-round", blackTex);
+                blackPix.dispose();
             }
 
+            // Similarly for the down state texture
             if (Gdx.files.internal("default-round-down.png").exists()) {
                 skin.add("default-round-down", new Texture(Gdx.files.internal("default-round-down.png")));
             } else {
-                // Create a gray texture as fallback for the "down" state
+                // Create a dark gray texture for the pressed button state
                 Pixmap grayPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
-                grayPix.setColor(new Color(0.5f, 0.5f, 0.5f, 1f));
+                grayPix.setColor(new Color(0.2f, 0.2f, 0.2f, 1f)); // Dark gray
                 grayPix.fill();
                 Texture grayTex = new Texture(grayPix);
                 skin.add("default-round-down", grayTex);
