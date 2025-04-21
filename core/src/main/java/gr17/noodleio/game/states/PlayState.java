@@ -344,8 +344,20 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         float currentX = localPlayer.getX_pos();
         float currentY = localPlayer.getY_pos();
+
+        // Get the raw mouse position and convert to game space
+        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        cam.unproject(mousePos); // This properly handles the coordinate conversion
+
+        // Convert the mouse position to target position in game coordinates
+        targetPosition = screenToGameCoordinates(new Vector2(mousePos.x, mousePos.y));
         float targetX = targetPosition.x;
         float targetY = targetPosition.y;
+
+        // Debug output to console
+        Gdx.app.debug("PlayState", String.format(
+            "Current: (%.1f, %.1f), Target: (%.1f, %.1f)",
+            currentX, currentY, targetX, targetY));
 
         // Check which direction to move based on the cursor position
         try {
@@ -365,6 +377,8 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                 // Move vertically
                 if (Math.abs(targetY - currentY) >= 1.0f) {
                     if (targetY > currentY) {
+                        // Note: DB functions already handle the Y direction correctly
+                        // move_up decreases Y, move_down increases Y
                         playerGameStateApi.movePlayerDown(playerId, sessionId);
                     } else if (targetY < currentY) {
                         playerGameStateApi.movePlayerUp(playerId, sessionId);
@@ -405,9 +419,10 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             mapHeight = currentSession.getMap_height();
         }
 
-        // Invert Y because screen coordinates have origin at top-left
+        // Direct mapping - don't invert Y as the DB functions already handle it correctly
+        // DB functions: move_up decreases Y, move_down increases Y (matches screen coordinates)
         float gameX = screenPos.x * mapWidth / Gdx.graphics.getWidth();
-        float gameY = (Gdx.graphics.getHeight() - screenPos.y) * mapHeight / Gdx.graphics.getHeight();
+        float gameY = screenPos.y * mapHeight / Gdx.graphics.getHeight();
 
         return new Vector2(gameX, gameY);
     }
@@ -426,9 +441,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             mapHeight = currentSession.getMap_height();
         }
 
-        // Invert Y to convert back to screen coordinates
+        // Direct mapping back to screen coordinates
         float screenX = gamePos.x * Gdx.graphics.getWidth() / mapWidth;
-        float screenY = Gdx.graphics.getHeight() - (gamePos.y * Gdx.graphics.getHeight() / mapHeight);
+        float screenY = gamePos.y * Gdx.graphics.getHeight() / mapHeight;
 
         return new Vector2(screenX, screenY);
     }
@@ -491,7 +506,10 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         // Draw cursor target if movement is active
         if (isMovementActive) {
             shapes.setColor(CURSOR_TARGET_COLOR);
-            shapes.circle(cursorPosition.x, cursorPosition.y, CURSOR_TARGET_SIZE);
+            // Use the actual mouse position for the cursor target rather than converted coordinates
+            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+            cam.unproject(mousePos); // Convert to camera coordinates
+            shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
 
             // Draw a line from player to target
             PlayerGameState localPlayer = getLocalPlayerState();
@@ -500,7 +518,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                     new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
                 shapes.setColor(Color.WHITE);
                 shapes.rectLine(playerScreenPos.x, playerScreenPos.y,
-                    cursorPosition.x, cursorPosition.y, 1);
+                    mousePos.x, mousePos.y, 1);
             }
         }
 

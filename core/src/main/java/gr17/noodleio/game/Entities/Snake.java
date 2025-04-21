@@ -46,8 +46,8 @@ public class Snake {
     }
 
     public void mapLimit(){
-        int mapLimitX = 500;
-        int mapLimitY = 500;
+        int mapLimitX = 1080;
+        int mapLimitY = 1080;
 
         if(pos.x > mapLimitX){
             snakeHead.vel.add(new Vector2(-3,0));

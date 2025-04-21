@@ -47,7 +47,7 @@ create table public."PlayerGameState" (
 /** The DB functions described bellow are for documentation purposes only. They are defined in Supabase, not here! **/
 
 /* DB Function
--- Function to move a player up (decrease y position by 1)
+-- Function to move a player up (decrease y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_up(
   p_player_id UUID,           -- The ID of the player to move
@@ -111,7 +111,7 @@ $$;
 * */
 
 /* DB function
--- Function to move a player down (increase y position by 1)
+-- Function to move a player down (increase y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_down(
   p_player_id UUID,           -- The ID of the player to move
@@ -175,7 +175,7 @@ $$;
 * */
 
 /* DB function
--- Function to move a player left (decrease x position by 1)
+-- Function to move a player left (decrease x position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_left(
   p_player_id UUID,           -- The ID of the player to move
@@ -239,7 +239,7 @@ $$;
 * */
 
 /*
--- Function to move a player right (increase x position by 1)
+-- Function to move a player right (increase x position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_right(
   p_player_id UUID,           -- The ID of the player to move
