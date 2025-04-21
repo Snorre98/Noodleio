@@ -485,6 +485,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         gameBatch.begin();
         gameBatch.end();
 
+        // Render map boundary first so it's behind everything else
+        renderMapBoundary();
+
         // Render foods
         for (Food f : foods) {
             f.render(cam);
@@ -524,6 +527,66 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Render other players as simplified snakes
         renderOtherPlayers();
+
+        shapes.end();
+    }
+
+    /**
+     * Renders the map boundary to show the player where the limits are
+     */
+    private void renderMapBoundary() {
+        // Get map dimensions
+        int mapWidth = 1080, mapHeight = 1080;
+        if (currentSession != null) {
+            mapWidth = currentSession.getMap_length();
+            mapHeight = currentSession.getMap_height();
+        }
+
+        // Convert map coordinates to screen coordinates
+        Vector2 topLeft = gameToScreenCoordinates(new Vector2(0, 0));
+        Vector2 topRight = gameToScreenCoordinates(new Vector2(mapWidth, 0));
+        Vector2 bottomLeft = gameToScreenCoordinates(new Vector2(0, mapHeight));
+        Vector2 bottomRight = gameToScreenCoordinates(new Vector2(mapWidth, mapHeight));
+
+        // Set up shape renderer for lines
+        shapes.setProjectionMatrix(cam.combined);
+        shapes.begin(ShapeRenderer.ShapeType.Line);
+        shapes.setColor(Color.RED);
+
+        // Draw map border (thicker line for visibility)
+        float borderThickness = 3.0f;
+
+        // Draw top border
+        shapes.rectLine(topLeft.x, topLeft.y, topRight.x, topRight.y, borderThickness);
+
+        // Draw right border
+        shapes.rectLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y, borderThickness);
+
+        // Draw bottom border
+        shapes.rectLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y, borderThickness);
+
+        // Draw left border
+        shapes.rectLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y, borderThickness);
+
+        // Add corner markers for better visibility
+        float markerSize = 20.0f;
+        shapes.setColor(Color.YELLOW);
+
+        // Top-left corner marker
+        shapes.rectLine(topLeft.x, topLeft.y, topLeft.x + markerSize, topLeft.y, borderThickness);
+        shapes.rectLine(topLeft.x, topLeft.y, topLeft.x, topLeft.y + markerSize, borderThickness);
+
+        // Top-right corner marker
+        shapes.rectLine(topRight.x, topRight.y, topRight.x - markerSize, topRight.y, borderThickness);
+        shapes.rectLine(topRight.x, topRight.y, topRight.x, topRight.y + markerSize, borderThickness);
+
+        // Bottom-right corner marker
+        shapes.rectLine(bottomRight.x, bottomRight.y, bottomRight.x - markerSize, bottomRight.y, borderThickness);
+        shapes.rectLine(bottomRight.x, bottomRight.y, bottomRight.x, bottomRight.y - markerSize, borderThickness);
+
+        // Bottom-left corner marker
+        shapes.rectLine(bottomLeft.x, bottomLeft.y, bottomLeft.x + markerSize, bottomLeft.y, borderThickness);
+        shapes.rectLine(bottomLeft.x, bottomLeft.y, bottomLeft.x, bottomLeft.y - markerSize, borderThickness);
 
         shapes.end();
     }
