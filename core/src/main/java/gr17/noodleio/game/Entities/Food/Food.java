@@ -1,30 +1,35 @@
 package gr17.noodleio.game.Entities.Food;
 
-import com.badlogic.gdx.graphics.Color;
-import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.Texture;
+import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.math.Circle;
 import com.badlogic.gdx.math.Vector2;
 
 public class Food {
     public Vector2 pos;
-    public ShapeRenderer shape;
     public Circle collisionShape;
-    public final int size = 12;
+    public final int size = 24;
     public boolean isEat;
     public Vector2 vel;
+    public Texture texture; // Added texture field
+    
     // Temporary vector to reduce allocations
     private final Vector2 tempVector = new Vector2();
 
-    public Food(Vector2 pos){
+    public Food(Vector2 pos) {
         this.pos = new Vector2(pos);
         vel = new Vector2(0,0);
-        shape = new ShapeRenderer();
         collisionShape = new Circle(pos.x, pos.y, size);
         isEat = false;
     }
+    
+    // Add a new constructor that accepts both position and texture
+    public Food(Vector2 pos, Texture texture) {
+        this(pos); // Call the existing constructor to reuse initialization code
+        this.texture = texture;
+    }
 
-    public void update(){
+    public void update() {
         // Only update if there's actual movement
         if (vel.x != 0 || vel.y != 0) {
             pos.add(vel);
@@ -32,7 +37,7 @@ public class Food {
         }
     }
 
-    public void getAttracted(Vector2 snakePos){
+    public void getAttracted(Vector2 snakePos) {
         // Use tempVector to reduce garbage collection
         tempVector.set(snakePos).sub(pos);
         
@@ -48,17 +53,7 @@ public class Food {
         }
     }
 
-    public void render(OrthographicCamera cam){
-        if(!isEat){
-            shape.setProjectionMatrix(cam.combined);
-            shape.begin(ShapeRenderer.ShapeType.Filled);
-            shape.setColor(Color.RED);
-            shape.circle(pos.x, pos.y, size,15);
-            shape.end();
-        }
-    }
-
-    public void delete(){
+    public void delete() {
         isEat = true;
     }
 }
