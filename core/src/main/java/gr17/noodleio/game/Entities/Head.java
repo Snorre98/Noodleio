@@ -14,6 +14,9 @@ public class Head extends BodyPart{
     public Circle magnetFoodShape;
     public int maxAcc;
     public int maxVel;
+    
+    // Cache for performance optimization
+    private final Vector2 tempVec = new Vector2();
 
     public Head(Color bodyColor){
         super(bodyColor);
@@ -26,20 +29,29 @@ public class Head extends BodyPart{
     }
 
     public void update(Vector3 mousePos){
-        acc = new Vector2(mousePos.x, mousePos.y);
-
-        acc.sub(pos);
-        acc.setLength(maxAcc);
-
-        vel.add(acc);
-        vel.limit(maxVel);
-
-        pos.add(vel);
-
-        //System.out.println(pos);
-
-        collisionShape.setPosition(pos.x, pos.y);
-        magnetFoodShape.setPosition(pos.x, pos.y);
+        // Use temporary vector to avoid allocations
+        tempVec.set(mousePos.x, mousePos.y);
+        tempVec.sub(pos);
+        
+        // Only calculate new acceleration if significant movement
+        if (tempVec.len2() > 0.01f) {
+            tempVec.nor().scl(maxAcc);
+            acc.set(tempVec);
+            
+            vel.add(acc);
+            
+            // Apply velocity limit
+            if (vel.len2() > maxVel * maxVel) {
+                vel.nor().scl(maxVel);
+            }
+            
+            // Update position
+            pos.add(vel);
+            
+            // Update collision shapes
+            collisionShape.setPosition(pos.x, pos.y);
+            magnetFoodShape.setPosition(pos.x, pos.y);
+        }
     }
 
     public boolean attractFoodDetection(Circle foodCircle){
@@ -50,17 +62,9 @@ public class Head extends BodyPart{
         return collisionShape.contains(foodColShape);
     }
 
+    // Note: We don't use this render method anymore since rendering is batched in PlayState
     @Override
     public void render(OrthographicCamera cam){
-        shape.setProjectionMatrix(cam.combined);
-        shape.begin(ShapeRenderer.ShapeType.Filled);
-        shape.setColor(color);
-        shape.circle(pos.x, pos.y,size,15);
-        shape.end();
-
-        shape.begin(ShapeRenderer.ShapeType.Line);
-        shape.setColor(Color.BLACK);
-        shape.circle(pos.x, pos.y,120,15);
-        shape.end();
+        // Left empty as batched rendering is handled by PlayState
     }
 }
