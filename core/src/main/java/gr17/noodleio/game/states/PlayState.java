@@ -8,6 +8,7 @@ import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
@@ -38,7 +39,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * Uses cursor-based movement and realtime synchronization with other players.
  */
 public class PlayState extends State implements RealtimeGameStateApi.GameStateCallback {
-
+    
     // Constants
     private static final float SYNC_INTERVAL = 0.1f;
     private static final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.3f, 1f);
@@ -79,6 +80,8 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private ShapeRenderer shapes;
     private BitmapFont font;
     private SpriteBatch gameBatch;
+    private SpriteBatch foodBatch;
+    private ResourceManager resources;
 
     // Snake-related fields
     private Snake localSnake;
@@ -150,56 +153,163 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
     }
 
-    /**
-     * Creates a new play state.
-     *
-     * @param gsm Game state manager
-     * @param sessionId ID of the game session
-     * @param playerId ID of the local player
-     * @param playerName Name of the local player
-     * @param rm Resource manager for shared resources
-     */
-    public PlayState(GameStateManager gsm, String sessionId, String playerId, String playerName, ResourceManager rm) {
-        super(gsm);
+   /**
+ * Creates a new play state.
+ *
+ * @param gsm Game state manager
+ * @param sessionId ID of the game session
+ * @param playerId ID of the local player
+ * @param playerName Name of the local player
+ * @param rm Resource manager for shared resources
+ */
+public PlayState(GameStateManager gsm, String sessionId, String playerId, String playerName, ResourceManager rm) {
+    super(gsm);
 
-        // Store player info
-        this.sessionId = sessionId;
-        this.playerId = playerId;
-        this.playerName = playerName;
+    // Store player info
+    this.sessionId = sessionId;
+    this.playerId = playerId;
+    this.playerName = playerName;
+    this.resources = rm;  // Store the resource manager
 
-        // Set up camera
-        this.cam = new OrthographicCamera();
-        this.cam.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    // Set up camera
+    this.cam = new OrthographicCamera();
+    this.cam.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
 
-        // Initialize graphics resources
-        this.shapes = new ShapeRenderer();
-        this.shapes.setAutoShapeType(true);
-        this.font = new BitmapFont();
-        this.font.getData().setScale(2);
-        this.gameBatch = new SpriteBatch();
+    // Initialize graphics resources
+    this.shapes = new ShapeRenderer();
+    this.shapes.setAutoShapeType(true);
+    this.font = new BitmapFont();
+    this.font.getData().setScale(2);
+    this.gameBatch = new SpriteBatch();
+    this.foodBatch = new SpriteBatch(); // Create a separate batch for food
 
-        // Create environment configuration
-        EnvironmentConfig config = new EnvironmentConfig() {
-            @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
-            @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
-        };
+    // Create environment configuration
+    EnvironmentConfig config = new EnvironmentConfig() {
+        @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
+        @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
+    };
 
-        // Initialize APIs and connect to game session
-        try {
-            this.realtimeGameStateApi = new RealtimeGameStateApi(config);
-            this.playerGameStateApi = new PlayerGameStateApi(config);
+    // Initialize APIs and connect to game session
+    try {
+        this.realtimeGameStateApi = new RealtimeGameStateApi(config);
+        this.playerGameStateApi = new PlayerGameStateApi(config);
 
-            // Register for callbacks and connect
-            this.realtimeGameStateApi.addCallback(this);
-            String result = this.realtimeGameStateApi.connect(sessionId, playerId);
-            Gdx.app.log("PlayState", "Connection result: " + result);
-        } catch (Exception e) {
-            Gdx.app.error("PlayState", "Error initializing game state APIs", e);
-        }
-
-        // Initialize snake-related components
-        initializeSnakeComponents();
+        // Register for callbacks and connect
+        this.realtimeGameStateApi.addCallback(this);
+        String result = this.realtimeGameStateApi.connect(sessionId, playerId);
+        Gdx.app.log("PlayState", "Connection result: " + result);
+    } catch (Exception e) {
+        Gdx.app.error("PlayState", "Error initializing game state APIs", e);
     }
+
+    // Initialize snake-related components
+    initializeSnakeComponents();
+}
+
+/**
+ * Spawn foods at random positions
+ */
+private void spawnFoods() {
+    foods.clear();
+    int viewWidth = Gdx.graphics.getWidth();
+    int viewHeight = Gdx.graphics.getHeight();
+
+    for (int i = 0; i < 50; i++) {
+        // Place food within view bounds plus some margin
+        int x = (int)(Math.random() * viewWidth * 2) - viewWidth/2;
+        int y = (int)(Math.random() * viewHeight * 2) - viewHeight/2;
+        
+        // Get a random food texture (50/50 chance between wheat and egg)
+        Texture foodTexture = resources.getRandomFoodTexture();
+        
+        // Create a food object with the selected texture
+        Food food = new Food(new Vector2(x, y));
+        food.texture = foodTexture;
+        foods.add(food);
+    }
+}
+
+/**
+ * Spawn power-ups at specific positions
+ */
+private void spawnPowerUps() {
+    powerUps.clear();
+    int viewWidth = Gdx.graphics.getWidth();
+    int viewHeight = Gdx.graphics.getHeight();
+
+    // Place power-ups at visible positions
+    SpeedBoost speedBoost = new SpeedBoost(new Vector2(viewWidth/4, viewHeight/4), resources.getSpeedBoostTexture());
+    powerUps.add(speedBoost);
+    
+    MagnetBoost magnetBoost = new MagnetBoost(new Vector2(viewWidth*3/4, viewHeight/4), resources.getMagnetBoostTexture());
+    powerUps.add(magnetBoost);
+}
+
+/**
+ * Renders game elements using SpriteBatch and ShapeRenderer.
+ */
+private void renderGameElements(SpriteBatch sb) {
+    // Draw map boundary
+    renderMapBoundary();
+    
+    // Begin the food sprite batch with the camera's projection matrix
+    foodBatch.begin();
+    foodBatch.setProjectionMatrix(cam.combined);
+    
+    // Draw all foods
+    for (Food f : foods) {
+        if (!f.isEat && f.texture != null) {
+            // Draw the food texture
+            float width = f.size * 2; // Diameter
+            float height = f.size * 2;
+            foodBatch.draw(f.texture, 
+                f.pos.x - width/2, // center the texture on the position
+                f.pos.y - height/2, 
+                width, height);
+        }
+    }
+
+    // Draw all power-ups
+    for (PowerUp p : powerUps) {
+        if (!p.isEat && p.texture != null) {
+            float width = p.size * 2;
+            float height = p.size * 2;
+            foodBatch.draw(p.texture, 
+                p.pos.x - width/2, 
+                p.pos.y - height/2, 
+                width, height);
+        }
+    }
+    
+    foodBatch.end();
+    
+    shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+    // Draw cursor target if movement is active
+    if (isMovementActive) {
+        shapes.setColor(CURSOR_TARGET_COLOR);
+        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+        cam.unproject(mousePos);
+        shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
+
+        // Draw a line from player to target
+        if (localSnake != null) {
+            shapes.setColor(Color.WHITE);
+            shapes.rectLine(localSnake.pos.x, localSnake.pos.y,
+                mousePos.x, mousePos.y, 1);
+        }
+    }
+
+    shapes.end();
+
+    // Render other player snakes
+    renderOtherPlayerSnakes();
+
+    // Render local snake if it exists
+    if (localSnake != null) {
+        renderSnake(localSnake, shapes);
+    }
+}
 
     /**
      * Initialize snake components (local player snake, foods, power-ups)
@@ -217,35 +327,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Initialize power-ups
         spawnPowerUps();
-    }
-
-    /**
-     * Spawn foods at random positions
-     */
-    private void spawnFoods() {
-        foods.clear();
-        int viewWidth = Gdx.graphics.getWidth();
-        int viewHeight = Gdx.graphics.getHeight();
-
-        for (int i = 0; i < 50; i++) {
-            // Place food within view bounds plus some margin
-            int x = (int)(Math.random() * viewWidth * 2) - viewWidth/2;
-            int y = (int)(Math.random() * viewHeight * 2) - viewHeight/2;
-            foods.add(new Food(new Vector2(x, y)));
-        }
-    }
-
-    /**
-     * Spawn power-ups at specific positions
-     */
-    private void spawnPowerUps() {
-        powerUps.clear();
-        int viewWidth = Gdx.graphics.getWidth();
-        int viewHeight = Gdx.graphics.getHeight();
-
-        // Place power-ups at visible positions
-        powerUps.add(new SpeedBoost(new Vector2(viewWidth/4, viewHeight/4)));
-        powerUps.add(new MagnetBoost(new Vector2(viewWidth*3/4, viewHeight/4)));
     }
 
     /**
@@ -634,61 +715,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         renderUI(sb);
     }
 
-    /**
-     * Renders game elements using ShapeRenderer and SpriteBatch.
-     */
-    private void renderGameElements(SpriteBatch sb) {
-        // Draw map boundary
-        renderMapBoundary();
-        
-        shapes.begin(ShapeRenderer.ShapeType.Filled);
-
-        // Draw all foods
-        for (Food f : foods) {
-            if (!f.isEat) {
-                shapes.setColor(Color.RED);
-                shapes.circle(f.pos.x, f.pos.y, f.size, 15);
-            }
-        }
-
-        // Draw all power-ups
-        for (PowerUp p : powerUps) {
-            if (!p.isEat) {
-                if (p.getType().equals("speed")) {
-                    shapes.setColor(Color.BLUE);
-                } else if (p.getType().equals("magnet")) {
-                    shapes.setColor(Color.GREEN);
-                }
-                shapes.circle(p.pos.x, p.pos.y, p.size, 15);
-            }
-        }
-
-        // Draw cursor target if movement is active
-        if (isMovementActive) {
-            shapes.setColor(CURSOR_TARGET_COLOR);
-            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            cam.unproject(mousePos);
-            shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
-
-            // Draw a line from player to target
-            if (localSnake != null) {
-                shapes.setColor(Color.WHITE);
-                shapes.rectLine(localSnake.pos.x, localSnake.pos.y,
-                    mousePos.x, mousePos.y, 1);
-            }
-        }
-
-        shapes.end();
-
-        // Render other player snakes
-        renderOtherPlayerSnakes();
-
-        // Render local snake if it exists
-        if (localSnake != null) {
-            renderSnake(localSnake, shapes);
-        }
-    }
-
     private void renderSnake(Snake snake, ShapeRenderer shapeRenderer) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
@@ -864,6 +890,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             if (shapes != null) shapes.dispose();
             if (font != null) font.dispose();
             if (gameBatch != null) gameBatch.dispose();
+            if (foodBatch != null) foodBatch.dispose();
 
             // Clean up API connections
             if (realtimeGameStateApi != null) {
