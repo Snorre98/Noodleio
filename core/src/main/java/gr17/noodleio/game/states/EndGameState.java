@@ -14,7 +14,11 @@ import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
+import gr17.noodleio.game.API.LeaderboardApi;
+import gr17.noodleio.game.config.Config;
+import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.model.PlayerResult;
+import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.util.ResourceManager;
 
 public class EndGameState extends State {
@@ -27,12 +31,25 @@ public class EndGameState extends State {
     private int placement;
     private ResourceManager rm;
 
-    public EndGameState(GameStateManager gsm, Array<PlayerResult> results, String playerName, int placement, ResourceManager rm) {
+    public EndGameState(GameStateManager gsm, Array<PlayerResult> results, String playerName, int placement, ResourceManager rm, GameSession gameSession) {
         super(gsm);
         this.results = results;
         this.playerName = playerName;
         this.placement = placement;
         this.rm = rm;
+
+        // Get the player's score
+        int playerScore = 0;
+        for (PlayerResult result : results) {
+            if (result.name.equals(playerName)) {
+                playerScore = result.score;
+                break;
+            }
+        }
+
+        if (gameSession != null && gameSession.getEnded_at() != null) {
+            saveScoreToLeaderboard(playerName, playerScore, gameSession);
+        }
 
         stage = new Stage(new FitViewport(800, 480, cam));
         Gdx.input.setInputProcessor(stage);
@@ -85,6 +102,33 @@ public class EndGameState extends State {
                 gsm.set(new MenuState(gsm));
             }
         });
+    }
+
+    private void saveScoreToLeaderboard(String playerName, int score, GameSession gameSession) {
+        try {
+            // Create environment config
+            EnvironmentConfig environmentConfig = new EnvironmentConfig() {
+                @Override
+                public String getSupabaseUrl() {
+                    return Config.getSupabaseUrl();
+                }
+
+                @Override
+                public String getSupabaseKey() {
+                    return Config.getSupabaseKey();
+                }
+            };
+
+            // Initialize leaderboard API
+            LeaderboardApi leaderboardApi = new LeaderboardApi(environmentConfig);
+
+            // Record the score with game duration
+            leaderboardApi.addLeaderboardEntryFromSession(playerName, score, gameSession);
+
+            Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName);
+        } catch (Exception e) {
+            Gdx.app.error("EndGameState", "Error saving score to leaderboard", e);
+        }
     }
 
     @Override

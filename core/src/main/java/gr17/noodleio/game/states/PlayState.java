@@ -929,8 +929,10 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                     ResourceManager rm = new ResourceManager();
                     rm.load();
 
+
+
                     // Transition to EndGameState
-                    gsm.set(new EndGameState(gsm, results, playerName, placement, rm));
+                    gsm.set(new EndGameState(gsm, results, playerName, placement, rm, currentSession));
                 } catch (Exception e) {
                     Gdx.app.error("PlayState", "Error transitioning to end game state", e);
                     // Fallback to menu if there's an error

@@ -7,6 +7,7 @@ data class LeaderboardEntry(
     val id: String,
     val player_name: String,
     val score: Int,
+    val duration_seconds: Double? = null,
     val updated_at: String? = null,
     val created_at: String? = null
 )

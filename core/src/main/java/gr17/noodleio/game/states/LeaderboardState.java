@@ -182,7 +182,7 @@ public class LeaderboardState extends State {
     }
 
     private void setupLeaderboardDisplay() {
-        Label header = new Label("PLAYER : SCORE", skin);
+        Label header = new Label("PLAYER : SCORE (TIME)", skin);
         table.add(header).padBottom(10);
         table.row();
 
@@ -219,7 +219,6 @@ public class LeaderboardState extends State {
         try {
             // Fetch top entries from the leaderboard
             String result = leaderboardApi.fetchLeaderboard(TOP_ENTRIES);
-            Gdx.app.log("LeaderboardState", "Leaderboard fetch result: " + result);
 
             // Parse and display entries
             updateLeaderboardDisplay(result);
@@ -233,14 +232,17 @@ public class LeaderboardState extends State {
         String[] lines = leaderboardText.split("\\r?\\n");
 
         int labelIndex = 0;
-        for (String line : lines) {
+        // Skip header lines
+        int startLine = 2; // Skip "TOP x PLAYERS" and "------------------------"
+
+        for (int i = startLine; i < lines.length; i++) {
             if (labelIndex >= TOP_ENTRIES) break;
 
-            // Skip non-data lines like the header
-            if (!line.contains(":")) continue;
+            // Skip non-data lines
+            if (!lines[i].contains(":")) continue;
 
             if (leaderboardLabels[labelIndex] != null) {
-                leaderboardLabels[labelIndex].setText(line.trim());
+                leaderboardLabels[labelIndex].setText(lines[i].trim());
             }
 
             labelIndex++;
