@@ -10,7 +10,6 @@ import gr17.noodleio.game.services.LeaderboardService;
 public class LeaderboardApi {
     private final LeaderboardService leaderboardView;
     private String leaderboardMessage = "";
-    private String addEntryMessage = "";
 
     public LeaderboardApi(EnvironmentConfig environmentConfig) {
         this.leaderboardView = new LeaderboardService(environmentConfig);
@@ -26,17 +25,8 @@ public class LeaderboardApi {
     public void addLeaderboardEntry(String playerName, int score, Double durationSeconds) {
         try {
             // Add the entry
-            LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntry(playerName, score, durationSeconds, null);
-            if (newEntry != null) {
-                String durationText = durationSeconds != null ?
-                    " in " + formatDuration(durationSeconds) : "";
-
-                addEntryMessage = "Added new entry: " + playerName + " with score " + score + durationText;
-            } else {
-                addEntryMessage = "Failed to add new leaderboard entry";
-            }
+            leaderboardView.addLeaderboardEntry(playerName, score, durationSeconds, null);
         } catch (Exception e) {
-            addEntryMessage = "Error adding leaderboard entry: " + e.getMessage();
             e.printStackTrace();
         }
     }
@@ -50,19 +40,8 @@ public class LeaderboardApi {
      */
     public void addLeaderboardEntryFromSession(String playerName, int score, GameSession gameSession) {
         try {
-            LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntryFromSession(playerName, score, gameSession);
-
-            if (newEntry != null) {
-                Double duration = newEntry.getDuration_seconds();
-                String durationText = duration != null ?
-                    " in " + formatDuration(duration) : "";
-
-                addEntryMessage = "Added new entry: " + playerName + " with score " + score + durationText;
-            } else {
-                addEntryMessage = "Failed to add new leaderboard entry from session";
-            }
+            leaderboardView.addLeaderboardEntryFromSession(playerName, score, gameSession);
         } catch (Exception e) {
-            addEntryMessage = "Error adding leaderboard entry from session: " + e.getMessage();
             e.printStackTrace();
         }
     }
