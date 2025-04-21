@@ -92,7 +92,7 @@ BEGIN
   IF v_current_y > 0 THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET y_pos = y_pos - 1
+    SET y_pos = y_pos - 8
     WHERE id = v_player_state_id
     RETURNING y_pos INTO v_current_y;
 
@@ -156,7 +156,7 @@ BEGIN
   IF v_current_y < (v_map_height - 1) THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET y_pos = y_pos + 1
+    SET y_pos = y_pos + 8
     WHERE id = v_player_state_id
     RETURNING y_pos INTO v_current_y;
 
@@ -220,7 +220,7 @@ BEGIN
   IF v_current_x > 0 THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET x_pos = x_pos - 1
+    SET x_pos = x_pos - 8
     WHERE id = v_player_state_id
     RETURNING x_pos INTO v_current_x;
 
@@ -284,7 +284,7 @@ BEGIN
   IF v_current_x < (v_map_length - 1) THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET x_pos = x_pos + 1
+    SET x_pos = x_pos + 8
     WHERE id = v_player_state_id
     RETURNING x_pos INTO v_current_x;
 

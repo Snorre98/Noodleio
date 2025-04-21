@@ -4,9 +4,11 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
+import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Vector2;
 
 import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.API.RealtimeGameStateApi;
@@ -20,13 +22,15 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Simplified game state for multiplayer gameplay.
- * Uses screen coordinates for rendering and handles player movement.
+ * Uses cursor-based movement for player control.
  */
 public class PlayState extends State implements RealtimeGameStateApi.GameStateCallback {
     // Constants
-    private static final float MOVEMENT_DELAY = 0.1f;  // 100ms between movements
+    private static final float MOVEMENT_DELAY = 0.05f;  // 50ms between movement updates
     private static final float PLAYER_SIZE = 15f;      // Size of player circle
     private static final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.3f, 1f);
+    private static final Color CURSOR_TARGET_COLOR = new Color(1f, 1f, 1f, 0.3f);
+    private static final float CURSOR_TARGET_SIZE = 10f;
 
     // Game state
     private String sessionId;
@@ -34,6 +38,12 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private GameSession currentSession;
     private ConcurrentHashMap<String, PlayerGameState> players = new ConcurrentHashMap<>();
     private float movementCooldown = 0;
+
+    // Cursor tracking
+    private Vector2 cursorPosition = new Vector2();
+    private Vector2 targetPosition = new Vector2();
+    private Vector2 currentPlayerPosition = new Vector2();
+    private boolean isMovementActive = false;
 
     // APIs
     private RealtimeGameStateApi realtimeGameStateApi;
@@ -61,6 +71,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Initialize graphics resources
         this.shapes = new ShapeRenderer();
+        this.shapes.setAutoShapeType(true);
         this.font = new BitmapFont();
         this.font.getData().setScale(2);
 
@@ -89,34 +100,23 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      */
     @Override
     protected void handleInput() {
-        // Process movement input if the cooldown timer allows
-        if (movementCooldown <= 0) {
-            boolean moved = false;
+        // Update cursor position (screen space)
+        cursorPosition.set(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY());
 
-            try {
-                if (Gdx.input.isKeyPressed(Input.Keys.UP)) {
-                    playerGameStateApi.movePlayerUp(playerId, sessionId);
-                    moved = true;
-                } else if (Gdx.input.isKeyPressed(Input.Keys.DOWN)) {
-                    playerGameStateApi.movePlayerDown(playerId, sessionId);
-                    moved = true;
-                } else if (Gdx.input.isKeyPressed(Input.Keys.LEFT)) {
-                    playerGameStateApi.movePlayerLeft(playerId, sessionId);
-                    moved = true;
-                } else if (Gdx.input.isKeyPressed(Input.Keys.RIGHT)) {
-                    playerGameStateApi.movePlayerRight(playerId, sessionId);
-                    moved = true;
-                }
-            } catch (Exception e) {
-                Gdx.app.error("PlayState", "Error processing movement", e);
-            }
+        // Convert to game coordinates
+        targetPosition = screenToGameCoordinates(cursorPosition);
 
-            if (moved) {
-                movementCooldown = MOVEMENT_DELAY;
-            }
+        // Start movement when mouse button is pressed
+        if (Gdx.input.isButtonJustPressed(Input.Buttons.LEFT)) {
+            isMovementActive = true;
         }
 
-        // Handle exit
+        // Stop movement when mouse button is released
+        if (Gdx.input.isButtonPressed(Input.Buttons.LEFT) == false) {
+            isMovementActive = false;
+        }
+
+        // Handle exit with escape key
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             disconnectAndReturnToMenu();
         }
@@ -137,6 +137,110 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Process input
         handleInput();
+
+        // Update player position if movement is active
+        if (isMovementActive && movementCooldown <= 0) {
+            movePlayerTowardsCursor();
+            movementCooldown = MOVEMENT_DELAY;
+        }
+
+        // Update current player position reference
+        PlayerGameState localPlayer = getLocalPlayerState();
+        if (localPlayer != null) {
+            currentPlayerPosition.set(localPlayer.getX_pos(), localPlayer.getY_pos());
+        }
+    }
+
+    /**
+     * Moves the player towards the cursor position by making appropriate API calls.
+     */
+    private void movePlayerTowardsCursor() {
+        // Get current player state
+        PlayerGameState localPlayer = getLocalPlayerState();
+        if (localPlayer == null) return;
+
+        float currentX = localPlayer.getX_pos();
+        float currentY = localPlayer.getY_pos();
+        float targetX = targetPosition.x;
+        float targetY = targetPosition.y;
+
+        // Check which direction to move based on the cursor position
+        try {
+            // Move horizontally
+            if (Math.abs(targetX - currentX) >= 1.0f) {
+                if (targetX > currentX) {
+                    playerGameStateApi.movePlayerRight(playerId, sessionId);
+                } else if (targetX < currentX) {
+                    playerGameStateApi.movePlayerLeft(playerId, sessionId);
+                }
+            }
+
+            // Move vertically
+            if (Math.abs(targetY - currentY) >= 1.0f) {
+                if (targetY > currentY) {
+                    playerGameStateApi.movePlayerDown(playerId, sessionId);
+                } else if (targetY < currentY) {
+                    playerGameStateApi.movePlayerUp(playerId, sessionId);
+                }
+            }
+        } catch (Exception e) {
+            Gdx.app.error("PlayState", "Error processing movement", e);
+        }
+    }
+
+    /**
+     * Gets the current state of the local player.
+     *
+     * @return The player's game state or null if not found
+     */
+    private PlayerGameState getLocalPlayerState() {
+        for (PlayerGameState player : players.values()) {
+            String pid = player.getPlayer_id().replace("\"", "");
+            if (pid.equals(playerId)) {
+                return player;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Converts screen coordinates to game coordinates.
+     *
+     * @param screenPos The position in screen space
+     * @return The position in game coordinate space
+     */
+    private Vector2 screenToGameCoordinates(Vector2 screenPos) {
+        // Get map dimensions if available
+        int mapWidth = 1080, mapHeight = 1080;
+        if (currentSession != null) {
+            mapWidth = currentSession.getMap_length();
+            mapHeight = currentSession.getMap_height();
+        }
+
+        float gameX = screenPos.x * mapWidth / Gdx.graphics.getWidth();
+        float gameY = screenPos.y * mapHeight / Gdx.graphics.getHeight();
+
+        return new Vector2(gameX, gameY);
+    }
+
+    /**
+     * Converts game coordinates to screen coordinates.
+     *
+     * @param gamePos The position in game space
+     * @return The position in screen coordinate space
+     */
+    private Vector2 gameToScreenCoordinates(Vector2 gamePos) {
+        // Get map dimensions if available
+        int mapWidth = 1080, mapHeight = 1080;
+        if (currentSession != null) {
+            mapWidth = currentSession.getMap_length();
+            mapHeight = currentSession.getMap_height();
+        }
+
+        float screenX = gamePos.x * Gdx.graphics.getWidth() / mapWidth;
+        float screenY = gamePos.y * Gdx.graphics.getHeight() / mapHeight;
+
+        return new Vector2(screenX, screenY);
     }
 
     /**
@@ -155,7 +259,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Draw game elements
-        renderGameElements();
+        renderGameElements(sb);
 
         // Draw UI text
         renderUI(sb);
@@ -164,7 +268,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     /**
      * Renders game elements using ShapeRenderer.
      */
-    private void renderGameElements() {
+    private void renderGameElements(SpriteBatch sb) {
         // Begin shape rendering
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
@@ -173,32 +277,59 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         float centerY = Gdx.graphics.getHeight() / 2f;
 
         shapes.setColor(Color.RED);
-        shapes.rectLine(centerX - 100, centerY, centerX + 100, centerY, 10);
-        shapes.rectLine(centerX, centerY - 100, centerX, centerY + 100, 10);
+        shapes.rectLine(centerX - 100, centerY, centerX + 100, centerY, 2);
+        shapes.rectLine(centerX, centerY - 100, centerX, centerY + 100, 2);
 
-        // Draw corner markers
+        // Draw map boundary markers
         shapes.setColor(Color.GREEN);
-        shapes.circle(0, 0, 30);
-        shapes.circle(Gdx.graphics.getWidth(), 0, 30);
-        shapes.circle(0, Gdx.graphics.getHeight(), 30);
-        shapes.circle(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 30);
+        shapes.circle(0, 0, 10);
+        shapes.circle(Gdx.graphics.getWidth(), 0, 10);
+        shapes.circle(0, Gdx.graphics.getHeight(), 10);
+        shapes.circle(Gdx.graphics.getWidth(), Gdx.graphics.getHeight(), 10);
+
+        // Draw cursor target if movement is active
+        if (isMovementActive) {
+            shapes.setColor(CURSOR_TARGET_COLOR);
+            Vector2 screenTargetPos = gameToScreenCoordinates(targetPosition);
+            shapes.circle(screenTargetPos.x, screenTargetPos.y, CURSOR_TARGET_SIZE);
+
+            // Draw a line from player to target
+            PlayerGameState localPlayer = getLocalPlayerState();
+            if (localPlayer != null) {
+                Vector2 playerScreenPos = gameToScreenCoordinates(
+                    new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
+                shapes.setColor(Color.WHITE);
+                shapes.rectLine(playerScreenPos.x, playerScreenPos.y,
+                    screenTargetPos.x, screenTargetPos.y, 1);
+            }
+        }
 
         // Draw all players
         for (PlayerGameState player : players.values()) {
-            // Convert from game coordinates to screen coordinates
-            float x = player.getX_pos() * Gdx.graphics.getWidth() / 1080;
-            float y = player.getY_pos() * Gdx.graphics.getHeight() / 1080;
+            // Get clean player ID
+            String pid = player.getPlayer_id().replace("\"", "");
+            boolean isLocalPlayer = pid.equals(playerId);
 
-            // Check if this is the local player
-            boolean isLocalPlayer = player.getPlayer_id().replace("\"", "").equals(playerId);
+            // Convert from game coordinates to screen coordinates
+            Vector2 screenPos = gameToScreenCoordinates(
+                new Vector2(player.getX_pos(), player.getY_pos()));
 
             // Draw player with white outline
             shapes.setColor(Color.WHITE);
-            shapes.circle(x, y, PLAYER_SIZE + 2);
+            shapes.circle(screenPos.x, screenPos.y, PLAYER_SIZE + 2);
 
             // Draw player with appropriate color
             shapes.setColor(isLocalPlayer ? Color.YELLOW : Color.BLUE);
-            shapes.circle(x, y, PLAYER_SIZE);
+            shapes.circle(screenPos.x, screenPos.y, PLAYER_SIZE);
+
+            // Draw player ID above player
+            shapes.end();
+            sb.begin();
+            font.setColor(Color.WHITE);
+            font.draw((Batch) sb, pid.substring(0, Math.min(4, pid.length())),
+                screenPos.x - 15, screenPos.y + PLAYER_SIZE + 15);
+            sb.end();
+            shapes.begin();
         }
 
         shapes.end();
@@ -217,14 +348,20 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         for (PlayerGameState player : players.values()) {
             y -= 40;
-            String isLocal = player.getPlayer_id().replace("\"", "").equals(playerId) ? " (YOU)" : "";
+            String pid = player.getPlayer_id().replace("\"", "");
+            String isLocal = pid.equals(playerId) ? " (YOU)" : "";
             font.draw(sb, String.format("Player %s: (%.1f, %.1f)%s",
-                player.getPlayer_id().substring(0, Math.min(4, player.getPlayer_id().length())),
+                pid.substring(0, Math.min(4, pid.length())),
                 player.getX_pos(), player.getY_pos(), isLocal), 20, y);
         }
 
+        // Draw cursor position
+        y -= 40;
+        font.draw(sb, String.format("Cursor: (%.1f, %.1f)",
+            targetPosition.x, targetPosition.y), 20, y);
+
         // Draw instructions
-        font.draw(sb, "Arrow keys to move, ESC to exit", 20, 40);
+        font.draw(sb, "Click and hold to move, ESC to exit", 20, 40);
 
         sb.end();
     }
@@ -275,6 +412,11 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             // Clean player ID and store the updated state
             String pid = playerState.getPlayer_id().replace("\"", "");
             players.put(pid, playerState);
+
+            // Update current player position if this is local player
+            if (pid.equals(playerId)) {
+                currentPlayerPosition.set(playerState.getX_pos(), playerState.getY_pos());
+            }
         } catch (Exception e) {
             Gdx.app.error("PlayState", "Error updating player state", e);
         }
