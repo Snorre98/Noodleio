@@ -39,6 +39,14 @@ public class LobbyState extends State {
     // API for lobby player operations
     private LobbyPlayerApi lobbyPlayerApi;
 
+    private float gameSessionCheckTimer = 0;
+    private static final float GAME_SESSION_CHECK_INTERVAL = 2.0f; // Check every 2 seconds
+
+    private float playerListRefreshTimer = 0;
+    private static final float PLAYER_LIST_REFRESH_INTERVAL = 3.0f; // Refresh every 3 seconds
+
+    private TextButton startGameButton;
+
     public LobbyState(GameStateManager gsm) {
         super(gsm);
 
@@ -159,6 +167,8 @@ public class LobbyState extends State {
         }
     }
 
+    private boolean isLobbyOwner = false;
+
     private void createUI() {
         // Create table for UI layout
         table = new Table();
@@ -168,43 +178,31 @@ public class LobbyState extends State {
         // Add lobby title
         Label titleLabel = new Label("LOBBY", skin);
         titleLabel.setFontScale(2.0f);
-        table.add(titleLabel).colspan(2).padBottom(40);
+        table.add(titleLabel).padBottom(20);
         table.row();
 
-        // Add lobby code display
-        table.add(new Label("Lobby Code:", skin)).padRight(20);
+        // Add lobby code section
+        table.add(new Label("Lobby Code:", skin)).padBottom(10);
+        table.row();
         lobbyCodeLabel = new Label("-----", skin);
-        table.add(lobbyCodeLabel).padBottom(20);
+        table.add(lobbyCodeLabel).padBottom(15);
         table.row();
 
-        // Add player name display
-        table.add(new Label("You:", skin)).padRight(20);
-        Label playerNameLabel = new Label("-----", skin);
-        table.add(playerNameLabel).padBottom(30);
+        // Add player name section - combine label and value on one line
+        Label playerNameLabel = new Label("You: -----", skin);
+        table.add(playerNameLabel).padBottom(15);
         table.row();
 
-        // Add players list title
-        table.add(new Label("Players:", skin)).colspan(2).padBottom(10);
+        // Add players list title and list
+        table.add(new Label("Players:", skin)).padBottom(10);
         table.row();
-
-        // Add players list
         playersLabel = new Label("Loading players...", skin);
-        table.add(playersLabel).colspan(2).padBottom(30);
+        table.add(playersLabel).padBottom(15);
         table.row();
 
-        // Add buttons with consistent sizing and styling to match MenuState
-        TextButton startGameButton = new TextButton("Start Game", skin);
-        table.add(startGameButton).width(200).height(50).padRight(20);
-
-        TextButton backButton = new TextButton("Back", skin);
-        table.add(backButton).width(200).height(50).padLeft(20);
-        table.row();
-
-        // Add status label
-        statusLabel = new Label("", skin);
-        table.add(statusLabel).colspan(2).padTop(30);
-
-        // Configure button listeners
+        // Create the start game button but don't add it yet
+        // We'll add it conditionally in updateUI() if the player is the lobby owner
+        final TextButton startGameButton = new TextButton("Start Game", skin);
         startGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -212,6 +210,19 @@ public class LobbyState extends State {
             }
         });
 
+        // Store the button as a class variable so we can manage it later
+        this.startGameButton = startGameButton;
+
+        // Add back button
+        TextButton backButton = new TextButton("Back", skin);
+        table.add(backButton).width(200).height(50);
+        table.row();
+
+        // Add status label
+        statusLabel = new Label("", skin);
+        table.add(statusLabel).padTop(30);
+
+        // Configure button listeners
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -226,18 +237,41 @@ public class LobbyState extends State {
         }
 
         if (playerName != null) {
-            // Update the player name label (index 3 in the table)
+            // Update the player name label (now a combined "You: [name]" label)
             Table table = (Table) stage.getActors().first();
             if (table.getChildren().size > 3) {
                 Actor playerNameActor = table.getChildren().get(3);
                 if (playerNameActor instanceof Label) {
-                    ((Label) playerNameActor).setText(playerName);
+                    ((Label) playerNameActor).setText("You: " + playerName);
                 }
             }
         }
 
         // Load players in the lobby
         refreshPlayersList();
+
+        // Check if this player is the lobby owner
+        if (lobbyId != null && playerId != null && !playerId.equals("Not needed")) {
+            try {
+                boolean isOwner = lobbyPlayerApi.isLobbyOwner(playerId, lobbyId);
+
+                // Only add or remove the start button if the owner status changed
+                if (isOwner != isLobbyOwner) {
+                    isLobbyOwner = isOwner;
+
+                    if (isLobbyOwner) {
+                        // Add the start game button if this player is the lobby owner
+                        table.row();
+                        table.add(startGameButton).width(200).height(50).padBottom(20);
+                    } else {
+                        // Remove the start game button if this player is not the lobby owner
+                        table.removeActor(startGameButton);
+                    }
+                }
+            } catch (Exception e) {
+                Gdx.app.error("LobbyState", "Error checking lobby owner", e);
+            }
+        }
     }
 
     private void refreshPlayersList() {
@@ -308,6 +342,65 @@ public class LobbyState extends State {
     @Override
     public void update(float dt) {
         stage.act(dt);
+
+        // Player list refresh logic
+        playerListRefreshTimer += dt;
+        if (playerListRefreshTimer >= PLAYER_LIST_REFRESH_INTERVAL) {
+            playerListRefreshTimer = 0;
+            refreshPlayersList();
+        }
+
+        gameSessionCheckTimer += dt;
+        if (gameSessionCheckTimer >= GAME_SESSION_CHECK_INTERVAL) {
+            gameSessionCheckTimer = 0;
+            checkForActiveGameSession();
+        }
+    }
+
+    private void checkForActiveGameSession() {
+        if (lobbyId != null) {
+            try {
+                // Check if there's an active game session for this lobby
+                String result = lobbyPlayerApi.checkActiveGameSession(lobbyId);
+
+                if (result != null && result.contains("session_id:")) {
+                    // Extract session ID
+                    String sessionId = extractSessionId(result);
+                    if (sessionId != null && !sessionId.isEmpty()) {
+                        Gdx.app.log("LobbyState", "Active game session found: " + sessionId);
+
+                        // Create resource manager
+                        ResourceManager rm = new ResourceManager();
+                        rm.load();
+
+                        // Get player ID for this client if not already known
+                        if (playerId == null || playerId.equals("Not needed")) {
+                            // Get player ID from the player name
+                            playerId = lobbyPlayerApi.getPlayerIdFromName(playerName);
+                        }
+
+                        // Transition to PlayState
+                        PlayState playState = new PlayState(gsm, sessionId, playerId, playerName, rm);
+                        gsm.set(playState);
+                    }
+                }
+            } catch (Exception e) {
+                Gdx.app.error("LobbyState", "Error checking for active game session", e);
+            }
+        }
+    }
+
+    private String extractSessionId(String result) {
+        try {
+            // Extract session ID from result string
+            int startIndex = result.indexOf("session_id:") + "session_id:".length();
+            int endIndex = result.indexOf(",", startIndex);
+            if (endIndex == -1) endIndex = result.length();
+            return result.substring(startIndex, endIndex).trim();
+        } catch (Exception e) {
+            Gdx.app.error("LobbyState", "Error extracting session ID", e);
+            return null;
+        }
     }
 
     @Override

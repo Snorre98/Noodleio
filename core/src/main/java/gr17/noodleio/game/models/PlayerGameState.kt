@@ -37,7 +37,6 @@ create table public."PlayerGameState" (
   score bigint not null default '50'::bigint,
   constraint PlayerGameState_pkey primary key (id),
   constraint PlayerGameState_player_id_key unique (player_id),
-  constraint PlayerGameState_session_id_key unique (session_id),
   constraint PlayerGameState_player_id_fkey foreign KEY (player_id) references "LobbyPlayer" (id) on delete CASCADE,
   constraint PlayerGameState_session_id_fkey foreign KEY (session_id) references "GameSession" (id) on delete CASCADE
 ) TABLESPACE pg_default;
@@ -48,7 +47,7 @@ create table public."PlayerGameState" (
 /** The DB functions described bellow are for documentation purposes only. They are defined in Supabase, not here! **/
 
 /* DB Function
--- Function to move a player up (decrease y position by 1)
+-- Function to move a player up (decrease y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_up(
   p_player_id UUID,           -- The ID of the player to move
@@ -92,7 +91,7 @@ BEGIN
   IF v_current_y > 0 THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET y_pos = y_pos - 1
+    SET y_pos = y_pos - 8
     WHERE id = v_player_state_id
     RETURNING y_pos INTO v_current_y;
 
@@ -112,7 +111,7 @@ $$;
 * */
 
 /* DB function
--- Function to move a player down (increase y position by 1)
+-- Function to move a player down (increase y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_down(
   p_player_id UUID,           -- The ID of the player to move
@@ -156,7 +155,7 @@ BEGIN
   IF v_current_y < (v_map_height - 1) THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET y_pos = y_pos + 1
+    SET y_pos = y_pos + 8
     WHERE id = v_player_state_id
     RETURNING y_pos INTO v_current_y;
 
@@ -176,7 +175,7 @@ $$;
 * */
 
 /* DB function
--- Function to move a player left (decrease x position by 1)
+-- Function to move a player left (decrease x position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_left(
   p_player_id UUID,           -- The ID of the player to move
@@ -220,7 +219,7 @@ BEGIN
   IF v_current_x > 0 THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET x_pos = x_pos - 1
+    SET x_pos = x_pos - 8
     WHERE id = v_player_state_id
     RETURNING x_pos INTO v_current_x;
 
@@ -240,7 +239,7 @@ $$;
 * */
 
 /*
--- Function to move a player right (increase x position by 1)
+-- Function to move a player right (increase x position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_right(
   p_player_id UUID,           -- The ID of the player to move
@@ -284,7 +283,7 @@ BEGIN
   IF v_current_x < (v_map_length - 1) THEN
     -- Update player position
     UPDATE "PlayerGameState"
-    SET x_pos = x_pos + 1
+    SET x_pos = x_pos + 8
     WHERE id = v_player_state_id
     RETURNING x_pos INTO v_current_x;
 

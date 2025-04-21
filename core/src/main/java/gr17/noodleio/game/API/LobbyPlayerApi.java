@@ -1,5 +1,7 @@
 package gr17.noodleio.game.API;
 
+import com.badlogic.gdx.Gdx;
+
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
 import gr17.noodleio.game.views.LobbyPlayerViews;
@@ -70,19 +72,16 @@ public class LobbyPlayerApi {
         try {
             List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
 
-            StringBuilder sb = new StringBuilder("Players in lobby " + lobbyId + ":\n");
+            StringBuilder sb = new StringBuilder("Players in lobby:\n");
 
             if (players.isEmpty()) {
                 sb.append("No players found in this lobby");
             } else {
                 for (LobbyPlayer player : players) {
+                    // Only include the player name, removing ID and joined_at
                     sb.append("- ")
                         .append(player.getPlayer_name())
-                        .append(" (ID: ")
-                        .append(player.getId())
-                        .append(", Joined: ")
-                        .append(player.getJoined_at())
-                        .append(")\n");
+                        .append("\n");
                 }
                 sb.append("Total players: ").append(players.size());
             }
@@ -189,6 +188,35 @@ public class LobbyPlayerApi {
      */
     public String startGameSession(String playerId, String lobbyId) {
         return startGameSession(playerId, lobbyId, 50, 1080, 1080);
+    }
+
+    public String checkActiveGameSession(String lobbyId) {
+        try {
+            // Check if an active game session exists for this lobby
+            return lobbyPlayerViews.checkActiveGameSession(lobbyId);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error checking for active game session", e);
+            return null;
+        }
+    }
+
+    public String getPlayerIdFromName(String playerName) {
+        try {
+            // Get player ID from player name
+            return lobbyPlayerViews.getPlayerIdFromName(playerName);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error getting player ID from name", e);
+            return null;
+        }
+    }
+
+    public boolean isLobbyOwner(String playerId, String lobbyId) {
+        try {
+            return lobbyPlayerViews.isLobbyOwner(playerId, lobbyId);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error checking if player is lobby owner", e);
+            return false;
+        }
     }
 
     /**
