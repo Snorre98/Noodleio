@@ -82,6 +82,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private SpriteBatch gameBatch;
     private SpriteBatch foodBatch;
     private ResourceManager resources;
+    private Texture backgroundTexture;
+    private int mapWidth, mapHeight;
+    private SpriteBatch backgroundBatch;
 
     // Snake-related fields
     private Snake localSnake;
@@ -181,7 +184,17 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
     this.font = new BitmapFont();
     this.font.getData().setScale(2);
     this.gameBatch = new SpriteBatch();
-    this.foodBatch = new SpriteBatch(); // Create a separate batch for food
+    this.foodBatch = new SpriteBatch();
+    
+    // Create a separate batch for background drawing
+    this.backgroundBatch = new SpriteBatch();
+    
+    // Get the background texture from resources
+    this.backgroundTexture = resources.getBackgroundTexture();
+    
+    // Set initial map dimensions
+    this.mapWidth = 1080;
+    this.mapHeight = 1080;
 
     // Create environment configuration
     EnvironmentConfig config = new EnvironmentConfig() {
@@ -686,7 +699,35 @@ private void renderGameElements(SpriteBatch sb) {
 
         return new Vector2(screenX, screenY);
     }
+    /**
+     * Renders the background to fill exactly the map boundary
+     */
+    private void renderBackground() {
+        // Get map dimensions
+        int mapWidth = 1080, mapHeight = 1080;
+        if (currentSession != null) {
+            mapWidth = currentSession.getMap_length();
+            mapHeight = currentSession.getMap_height();
+        }
 
+        // Convert map corners to screen coordinates (same as in renderMapBoundary)
+        Vector2 topLeft = gameToScreenCoordinates(new Vector2(0, 0));
+        Vector2 bottomRight = gameToScreenCoordinates(new Vector2(mapWidth, mapHeight));
+        
+        // Calculate width and height in screen coordinates
+        float screenWidth = bottomRight.x - topLeft.x;
+        float screenHeight = bottomRight.y - topLeft.y;
+
+        // Draw the background to fill exactly the map boundary
+        backgroundBatch.begin();
+        backgroundBatch.setProjectionMatrix(cam.combined);
+        backgroundBatch.draw(
+            backgroundTexture,
+            topLeft.x, topLeft.y,  // Position at top-left corner of map
+            screenWidth, screenHeight  // Size to fill the entire map in screen coordinates
+        );
+        backgroundBatch.end();
+    }
     /**
      * Renders the game state.
      *
@@ -705,16 +746,24 @@ private void renderGameElements(SpriteBatch sb) {
         // Update camera
         cam.update();
 
+        // Update map dimensions if session is available
+        if (currentSession != null) {
+            mapWidth = currentSession.getMap_length();
+            mapHeight = currentSession.getMap_height();
+        }
+
+        // Draw background first
+        renderBackground();
+
         // Set up shape renderer with camera
         shapes.setProjectionMatrix(cam.combined);
 
-        // Draw game elements
+        // Draw game elements (including map boundary)
         renderGameElements(sb);
 
-        // Draw UI text (UI uses the passed batch which has identity projection)
+        // Draw UI text
         renderUI(sb);
     }
-
     private void renderSnake(Snake snake, ShapeRenderer shapeRenderer) {
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
 
@@ -887,6 +936,7 @@ private void renderGameElements(SpriteBatch sb) {
     public void dispose() {
         try {
             // Dispose rendering resources
+            if (backgroundBatch != null) backgroundBatch.dispose();
             if (shapes != null) shapes.dispose();
             if (font != null) font.dispose();
             if (gameBatch != null) gameBatch.dispose();

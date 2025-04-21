@@ -12,6 +12,7 @@ public class ResourceManager {
     private Texture eggTexture;
     private Texture speedBoostTexture;
     private Texture magnetBoostTexture;
+    private Texture backgroundTexture; // Add this field for background
 
     public void load() {
         FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("PressStart2P-Regular.ttf"));
@@ -28,17 +29,23 @@ public class ResourceManager {
             eggTexture = new Texture(Gdx.files.internal("food/egg.png"));
             speedBoostTexture = new Texture(Gdx.files.internal("food/speedboost.png"));
             magnetBoostTexture = new Texture(Gdx.files.internal("food/magnetboost.png"));
+            backgroundTexture = new Texture(Gdx.files.internal("food/bowl.png")); // Add this line
             
             // Apply texture filters for smoother scaling
             wheatTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             eggTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             speedBoostTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             magnetBoostTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
+            backgroundTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear); // Add this line
         } catch (Exception e) {
             Gdx.app.error("ResourceManager", "Error loading textures", e);
         }
     }
 
+    // Add getter for background texture
+    public Texture getBackgroundTexture() {
+        return backgroundTexture;
+    }
 
     public BitmapFont getDefaultFont() {
         return defaultFont;
@@ -69,11 +76,12 @@ public class ResourceManager {
         if (defaultFont != null) {
             defaultFont.dispose();
         }
-        
+            
         // Dispose textures
         if (wheatTexture != null) wheatTexture.dispose();
         if (eggTexture != null) eggTexture.dispose();
         if (speedBoostTexture != null) speedBoostTexture.dispose();
         if (magnetBoostTexture != null) magnetBoostTexture.dispose();
+        if (backgroundTexture != null) backgroundTexture.dispose();
     }
 }
