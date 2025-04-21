@@ -187,7 +187,7 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String startGameSession(String playerId, String lobbyId) {
-        return startGameSession(playerId, lobbyId, 50, 1080, 1080);
+        return startGameSession(playerId, lobbyId, 10, 1080, 1080);
     }
 
     public String checkActiveGameSession(String lobbyId) {
