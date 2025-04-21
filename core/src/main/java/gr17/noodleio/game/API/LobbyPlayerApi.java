@@ -72,19 +72,16 @@ public class LobbyPlayerApi {
         try {
             List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
 
-            StringBuilder sb = new StringBuilder("Players in lobby " + lobbyId + ":\n");
+            StringBuilder sb = new StringBuilder("Players in lobby:\n");
 
             if (players.isEmpty()) {
                 sb.append("No players found in this lobby");
             } else {
                 for (LobbyPlayer player : players) {
+                    // Only include the player name, removing ID and joined_at
                     sb.append("- ")
                         .append(player.getPlayer_name())
-                        .append(" (ID: ")
-                        .append(player.getId())
-                        .append(", Joined: ")
-                        .append(player.getJoined_at())
-                        .append(")\n");
+                        .append("\n");
                 }
                 sb.append("Total players: ").append(players.size());
             }

@@ -180,6 +180,7 @@ public class LobbyState extends State {
         // Add lobby code display
         table.add(new Label("Lobby Code:", skin)).padRight(20);
         lobbyCodeLabel = new Label("-----", skin);
+        table.row();
         table.add(lobbyCodeLabel).padBottom(20);
         table.row();
 
