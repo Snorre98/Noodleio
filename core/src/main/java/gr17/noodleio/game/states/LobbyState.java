@@ -42,6 +42,9 @@ public class LobbyState extends State {
     private float gameSessionCheckTimer = 0;
     private static final float GAME_SESSION_CHECK_INTERVAL = 2.0f; // Check every 2 seconds
 
+    private float playerListRefreshTimer = 0;
+    private static final float PLAYER_LIST_REFRESH_INTERVAL = 3.0f; // Refresh every 3 seconds
+
     public LobbyState(GameStateManager gsm) {
         super(gsm);
 
@@ -312,7 +315,13 @@ public class LobbyState extends State {
     public void update(float dt) {
         stage.act(dt);
 
-        // Add game session check logic
+        // Player list refresh logic
+        playerListRefreshTimer += dt;
+        if (playerListRefreshTimer >= PLAYER_LIST_REFRESH_INTERVAL) {
+            playerListRefreshTimer = 0;
+            refreshPlayersList();
+        }
+
         gameSessionCheckTimer += dt;
         if (gameSessionCheckTimer >= GAME_SESSION_CHECK_INTERVAL) {
             gameSessionCheckTimer = 0;
