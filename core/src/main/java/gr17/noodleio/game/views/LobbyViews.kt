@@ -83,7 +83,7 @@ class LobbyViews(private val environmentConfig: EnvironmentConfig) {
      * @param maxPlayers Maximum number of players allowed
      * @return A Pair containing the Lobby and LobbyPlayer objects, or null if there was an error
      */
-    fun createLobbyWithOwner(playerName: String, maxPlayers: Int = 4): Pair<Lobby, LobbyPlayer>? {
+    fun createLobbyWithOwner(playerName: String, maxPlayers: Int = 2): Pair<Lobby, LobbyPlayer>? {
         return runBlocking {
             try {
                 // Call the database function using RPC

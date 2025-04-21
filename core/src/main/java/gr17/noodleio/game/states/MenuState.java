@@ -274,7 +274,7 @@ public class MenuState extends State {
             Gdx.app.log("MenuState", "Attempting to create lobby with player: " + playerName);
 
             // Create lobby with owner
-            String result = lobbyApi.createLobbyWithOwner(playerName, 4);
+            String result = lobbyApi.createLobbyWithOwner(playerName);
             Gdx.app.log("MenuState", "Lobby creation result: " + result);
 
             // Parse response to extract IDs
