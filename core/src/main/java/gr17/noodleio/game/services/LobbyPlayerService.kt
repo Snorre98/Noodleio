@@ -1,4 +1,4 @@
-package gr17.noodleio.game.views
+package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
@@ -16,7 +16,7 @@ import java.util.UUID
  * For a player to join a lobby
  * The player joins the lobby by posting the lobby key (the lobby UUID)
  * */
-class LobbyPlayerViews(environmentConfig: EnvironmentConfig) {
+class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)

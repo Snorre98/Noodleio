@@ -1,16 +1,15 @@
-package gr17.noodleio.game.views
+package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.LeaderboardEntry
 import gr17.noodleio.game.models.GameSession
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.runBlocking
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 
-class LeaderboardViews(environmentConfig: EnvironmentConfig) {
+class LeaderboardService(environmentConfig: EnvironmentConfig) {
 
     // Create our own service manager with custom serializer
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)

@@ -1,4 +1,4 @@
-package gr17.noodleio.game.views
+package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.Lobby
@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
  * Enables a player to create a lobby and start a game.
  * When a player creates a lobby it is also added to LobbyPlayer
  * */
-class LobbyViews(environmentConfig: EnvironmentConfig) {
+class LobbyService(environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)

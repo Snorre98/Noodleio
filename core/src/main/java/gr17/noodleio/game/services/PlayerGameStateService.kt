@@ -1,4 +1,4 @@
-package gr17.noodleio.game.views
+package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import kotlinx.coroutines.runBlocking
@@ -7,7 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class PlayerGameStateViews(environmentConfig: EnvironmentConfig) {
+class PlayerGameStateService(environmentConfig: EnvironmentConfig) {
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
 

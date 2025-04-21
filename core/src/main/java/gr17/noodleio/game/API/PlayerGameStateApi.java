@@ -1,15 +1,15 @@
 package gr17.noodleio.game.API;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.views.PlayerGameStateViews;
+import gr17.noodleio.game.services.PlayerGameStateService;
 import kotlin.Pair;
 
 public class PlayerGameStateApi {
-    private final PlayerGameStateViews playerGameStateViews;
+    private final PlayerGameStateService playerGameStateService;
     private String movePlayerMessage = "";
 
     public PlayerGameStateApi(EnvironmentConfig environmentConfig) {
-        this.playerGameStateViews = new PlayerGameStateViews(environmentConfig);
+        this.playerGameStateService = new PlayerGameStateService(environmentConfig);
     }
 
     /**
@@ -20,7 +20,7 @@ public class PlayerGameStateApi {
      */
     public String movePlayerUp(String playerId, String sessionId) {
         try {
-            Pair<Boolean, String> result = playerGameStateViews.movePlayerUp(playerId, sessionId);
+            Pair<Boolean, String> result = playerGameStateService.movePlayerUp(playerId, sessionId);
 
             boolean success = result.getFirst();
             String message = result.getSecond();
@@ -47,7 +47,7 @@ public class PlayerGameStateApi {
      */
     public String movePlayerDown(String playerId, String sessionId) {
         try {
-            Pair<Boolean, String> result = playerGameStateViews.movePlayerDown(playerId, sessionId);
+            Pair<Boolean, String> result = playerGameStateService.movePlayerDown(playerId, sessionId);
 
             boolean success = result.getFirst();
             String message = result.getSecond();
@@ -74,7 +74,7 @@ public class PlayerGameStateApi {
      */
     public String movePlayerLeft(String playerId, String sessionId) {
         try {
-            Pair<Boolean, String> result = playerGameStateViews.movePlayerLeft(playerId, sessionId);
+            Pair<Boolean, String> result = playerGameStateService.movePlayerLeft(playerId, sessionId);
 
             boolean success = result.getFirst();
             String message = result.getSecond();
@@ -101,7 +101,7 @@ public class PlayerGameStateApi {
      */
     public String movePlayerRight(String playerId, String sessionId) {
         try {
-            Pair<Boolean, String> result = playerGameStateViews.movePlayerRight(playerId, sessionId);
+            Pair<Boolean, String> result = playerGameStateService.movePlayerRight(playerId, sessionId);
 
             boolean success = result.getFirst();
             String message = result.getSecond();
@@ -123,7 +123,7 @@ public class PlayerGameStateApi {
     public String updatePlayerScore(String playerId, String sessionId, int newScore) {
         try {
             // Call the database function to update the player's score
-            String result = playerGameStateViews.updatePlayerScore(playerId, sessionId, newScore);
+            String result = playerGameStateService.updatePlayerScore(playerId, sessionId, newScore);
             return result;
         } catch (Exception e) {
             String errorMsg = "Error updating player score: " + e.getMessage();

@@ -3,8 +3,8 @@ package gr17.noodleio.game.API;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
-import gr17.noodleio.game.views.RealtimeGameStateService;
-import gr17.noodleio.game.views.RealtimeGameStateService.GameStateListener;
+import gr17.noodleio.game.services.RealtimeGameStateService;
+import gr17.noodleio.game.services.RealtimeGameStateService.GameStateListener;
 
 import java.util.ArrayList;
 import java.util.List;

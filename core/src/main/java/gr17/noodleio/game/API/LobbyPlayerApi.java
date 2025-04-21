@@ -4,12 +4,12 @@ import com.badlogic.gdx.Gdx;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.views.LobbyPlayerViews;
+import gr17.noodleio.game.services.LobbyPlayerService;
 
 import java.util.List;
 
 public class LobbyPlayerApi {
-    private final LobbyPlayerViews lobbyPlayerViews;
+    private final LobbyPlayerService lobbyPlayerService;
     private String joinLobbyMessage = "";
     private String playersListMessage = "";
     private String leaveLobbyMessage = "";
@@ -17,7 +17,7 @@ public class LobbyPlayerApi {
     private String startGameSessionMessage = "";
 
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
-        this.lobbyPlayerViews = new LobbyPlayerViews(environmentConfig);
+        this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
     }
 
     /**
@@ -28,7 +28,7 @@ public class LobbyPlayerApi {
      */
     public String joinLobby(String playerName, String lobbyId) {
         try {
-            LobbyPlayer player = lobbyPlayerViews.joinLobby(playerName, lobbyId);
+            LobbyPlayer player = lobbyPlayerService.joinLobby(playerName, lobbyId);
 
             if (player != null) {
                 joinLobbyMessage = "Player '" + playerName + "' successfully joined lobby with ID: " + lobbyId +
@@ -53,7 +53,7 @@ public class LobbyPlayerApi {
      */
     public String getPlayersInLobby(String lobbyId) {
         try {
-            List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
+            List<LobbyPlayer> players = lobbyPlayerService.getPlayersInLobby(lobbyId);
 
             StringBuilder sb = new StringBuilder("Players in lobby:\n");
 
@@ -85,7 +85,7 @@ public class LobbyPlayerApi {
      */
     public String leaveLobby(String playerId) {
         try {
-            boolean success = lobbyPlayerViews.leaveLobby(playerId);
+            boolean success = lobbyPlayerService.leaveLobby(playerId);
 
             if (success) {
                 leaveLobbyMessage = "Player successfully left the lobby";
@@ -110,7 +110,7 @@ public class LobbyPlayerApi {
     public String getPlayerById(String playerId) {
         // TODO: use this in refactor
         try {
-            LobbyPlayer player = lobbyPlayerViews.getPlayerById(playerId);
+            LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
 
             if (player != null) {
                 return "Player found: " + player.getPlayer_name() +
@@ -142,7 +142,7 @@ public class LobbyPlayerApi {
     public String startGameSession(String playerId, String lobbyId, int winningScore, int mapLength, int mapHeight) {
         try {
             kotlin.Pair<gr17.noodleio.game.models.GameSession, String> result =
-                lobbyPlayerViews.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
+                lobbyPlayerService.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
 
             gr17.noodleio.game.models.GameSession gameSession = result.getFirst();
             String message = result.getSecond();
@@ -178,7 +178,7 @@ public class LobbyPlayerApi {
     public String checkActiveGameSession(String lobbyId) {
         try {
             // Check if an active game session exists for this lobby
-            return lobbyPlayerViews.checkActiveGameSession(lobbyId);
+            return lobbyPlayerService.checkActiveGameSession(lobbyId);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error checking for active game session", e);
             return null;
@@ -188,7 +188,7 @@ public class LobbyPlayerApi {
     public String getPlayerIdFromName(String playerName) {
         try {
             // Get player ID from player name
-            return lobbyPlayerViews.getPlayerIdFromName(playerName);
+            return lobbyPlayerService.getPlayerIdFromName(playerName);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error getting player ID from name", e);
             return null;
@@ -197,7 +197,7 @@ public class LobbyPlayerApi {
 
     public boolean isLobbyOwner(String playerId, String lobbyId) {
         try {
-            return lobbyPlayerViews.isLobbyOwner(playerId, lobbyId);
+            return lobbyPlayerService.isLobbyOwner(playerId, lobbyId);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error checking if player is lobby owner", e);
             return false;

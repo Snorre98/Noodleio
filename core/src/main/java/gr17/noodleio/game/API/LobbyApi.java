@@ -3,14 +3,14 @@ package gr17.noodleio.game.API;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.Lobby;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.views.LobbyViews;
+import gr17.noodleio.game.services.LobbyService;
 import kotlin.Pair;
 
 public class LobbyApi {
-    private final LobbyViews lobbyViews;
+    private final LobbyService lobbyService;
 
     public LobbyApi(EnvironmentConfig environmentConfig) {
-        this.lobbyViews = new LobbyViews(environmentConfig);
+        this.lobbyService = new LobbyService(environmentConfig);
     }
 
     /**
@@ -21,7 +21,7 @@ public class LobbyApi {
     public String createLobbyWithOwner(String playerName) {
         String createLobbyMessage = "";
         try {
-            Pair<Lobby, LobbyPlayer> result = lobbyViews.createLobbyWithOwner(playerName, 2);
+            Pair<Lobby, LobbyPlayer> result = lobbyService.createLobbyWithOwner(playerName, 2);
 
             if (result != null) {
                 Lobby lobby = result.getFirst();
