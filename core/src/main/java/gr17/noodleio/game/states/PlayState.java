@@ -220,41 +220,61 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
 }
 
 /**
- * Spawn foods at random positions
+ * Spawn foods at random positions within the map boundary
  */
 private void spawnFoods() {
     foods.clear();
-    int viewWidth = Gdx.graphics.getWidth();
-    int viewHeight = Gdx.graphics.getHeight();
+    
+    // Get actual map dimensions
+    int actualMapWidth = 1080;
+    int actualMapHeight = 1080;
+    if (currentSession != null) {
+        actualMapWidth = currentSession.getMap_length();
+        actualMapHeight = currentSession.getMap_height();
+    }
 
     for (int i = 0; i < 50; i++) {
-        // Place food within view bounds plus some margin
-        int x = (int)(Math.random() * viewWidth * 2) - viewWidth/2;
-        int y = (int)(Math.random() * viewHeight * 2) - viewHeight/2;
+        // Place food within map bounds (in game coordinates)
+        // Add a small margin (20 units) to keep food away from edges
+        int margin = 20;
+        int x = margin + (int)(Math.random() * (actualMapWidth - 2*margin));
+        int y = margin + (int)(Math.random() * (actualMapHeight - 2*margin));
+        
+        // Convert to screen coordinates for rendering
+        Vector2 screenPos = gameToScreenCoordinates(new Vector2(x, y));
         
         // Get a random food texture (50/50 chance between wheat and egg)
         Texture foodTexture = resources.getRandomFoodTexture();
         
         // Create a food object with the selected texture
-        Food food = new Food(new Vector2(x, y));
+        Food food = new Food(screenPos);
         food.texture = foodTexture;
         foods.add(food);
     }
 }
 
 /**
- * Spawn power-ups at specific positions
+ * Spawn power-ups at specific positions within the map boundary
  */
 private void spawnPowerUps() {
     powerUps.clear();
-    int viewWidth = Gdx.graphics.getWidth();
-    int viewHeight = Gdx.graphics.getHeight();
+    
+    // Get actual map dimensions
+    int actualMapWidth = 1080;
+    int actualMapHeight = 1080;
+    if (currentSession != null) {
+        actualMapWidth = currentSession.getMap_length();
+        actualMapHeight = currentSession.getMap_height();
+    }
 
-    // Place power-ups at visible positions
-    SpeedBoost speedBoost = new SpeedBoost(new Vector2(viewWidth/4, viewHeight/4), resources.getSpeedBoostTexture());
+    // Place power-ups at evenly distributed positions
+    // Convert game coordinates to screen coordinates
+    Vector2 speedPos = gameToScreenCoordinates(new Vector2(actualMapWidth/4, actualMapHeight/4));
+    SpeedBoost speedBoost = new SpeedBoost(speedPos, resources.getSpeedBoostTexture());
     powerUps.add(speedBoost);
     
-    MagnetBoost magnetBoost = new MagnetBoost(new Vector2(viewWidth*3/4, viewHeight/4), resources.getMagnetBoostTexture());
+    Vector2 magnetPos = gameToScreenCoordinates(new Vector2(actualMapWidth*3/4, actualMapHeight*3/4));
+    MagnetBoost magnetBoost = new MagnetBoost(magnetPos, resources.getMagnetBoostTexture());
     powerUps.add(magnetBoost);
 }
 
