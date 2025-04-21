@@ -1,14 +1,14 @@
 package gr17.noodleio.game.Entities;
 
+import java.util.ArrayList;
+
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+
 import gr17.noodleio.game.Entities.Food.Food;
 import gr17.noodleio.game.util.Timer;
-
-import java.util.ArrayList;
 
 public class Snake {
     public ArrayList<BodyPart> body;
@@ -110,7 +110,17 @@ public class Snake {
 
         if(growScore == 2){
             growScore = 0;
-            body.add(new BodyPart(Color.BROWN));
+            
+            // Get the last body segment's position
+            BodyPart lastSegment = body.get(body.size() - 1);
+            
+            // Create new body part with the same position as the last one
+            BodyPart newPart = new BodyPart(Color.BROWN);
+            newPart.pos.set(lastSegment.pos);  // Initialize position!
+            
+            // Add the properly positioned body part
+            body.add(newPart);
+            
             size++;
             this.changeBodySize();
         }

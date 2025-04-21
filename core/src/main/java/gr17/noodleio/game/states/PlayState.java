@@ -1,38 +1,35 @@
 package gr17.noodleio.game.states;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
-import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 
 import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.API.RealtimeGameStateApi;
+import gr17.noodleio.game.Entities.BodyPart;
+import gr17.noodleio.game.Entities.Food.Food;
+import gr17.noodleio.game.Entities.Food.MagnetBoost;
+import gr17.noodleio.game.Entities.Food.PowerUp;
+import gr17.noodleio.game.Entities.Food.SpeedBoost;
+import gr17.noodleio.game.Entities.Snake;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
 import gr17.noodleio.game.util.ResourceManager;
-
-// Import snake-related classes
-import gr17.noodleio.game.Entities.Snake;
-import gr17.noodleio.game.Entities.Head;
-import gr17.noodleio.game.Entities.BodyPart;
-import gr17.noodleio.game.Entities.Food.Food;
-import gr17.noodleio.game.Entities.Food.PowerUp;
-import gr17.noodleio.game.Entities.Food.SpeedBoost;
-import gr17.noodleio.game.Entities.Food.MagnetBoost;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Multiplayer game state that incorporates snake mechanics.
@@ -144,15 +141,41 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
 
         public void render(ShapeRenderer shapeRenderer) {
-            // Draw body first (so head draws on top)
-            shapeRenderer.setColor(OTHER_PLAYER_BODY_COLOR);
+            if (bodyPositions.size() < 1) return;
+            
+            ArrayList<Vector2> noodlePoints = new ArrayList<>();
+            
+            // Add head
+            noodlePoints.add(new Vector2(headPosition.x, headPosition.y));
+            
+            // Add body parts
             for (Vector2 bodyPos : bodyPositions) {
-                shapeRenderer.circle(bodyPos.x, bodyPos.y, snakeSize, 15);
+                noodlePoints.add(new Vector2(bodyPos.x, bodyPos.y));
             }
-
-            // Draw head
+            
+            // Set noodle thickness
+            float noodleThickness = snakeSize * 1.8f;
+            
+            // Draw the noodle
+            shapeRenderer.setColor(OTHER_PLAYER_BODY_COLOR);
+            
+            // Draw continuous line with thickness
+            for (int i = 0; i < noodlePoints.size() - 1; i++) {
+                Vector2 current = noodlePoints.get(i);
+                Vector2 next = noodlePoints.get(i + 1);
+                
+                shapeRenderer.rectLine(current.x, current.y, next.x, next.y, noodleThickness);
+            }
+            
+            // Draw rounded caps at each joint
+            for (int i = 0; i < noodlePoints.size(); i++) {
+                Vector2 point = noodlePoints.get(i);
+                shapeRenderer.circle(point.x, point.y, noodleThickness / 2, 15);
+            }
+            
+            // Draw head end cap with different color
             shapeRenderer.setColor(OTHER_PLAYER_HEAD_COLOR);
-            shapeRenderer.circle(headPosition.x, headPosition.y, snakeSize, 15);
+            shapeRenderer.circle(headPosition.x, headPosition.y, noodleThickness / 2, 15);
         }
     }
 
@@ -784,28 +807,123 @@ private void renderGameElements(SpriteBatch sb) {
         // Draw UI text
         renderUI(sb);
     }
+    /**
+     * Renders a snake to look like a noodle instead of separate circles
+     */
     private void renderSnake(Snake snake, ShapeRenderer shapeRenderer) {
-        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        if (snake.body.size() < 2) return; // Need at least head and one body part
+        
+        // First collect all snake points (head and body)
+        ArrayList<Vector2> noodlePoints = new ArrayList<>();
+        
+        // Add head
+        noodlePoints.add(new Vector2(snake.snakeHead.pos.x, snake.snakeHead.pos.y));
+        
+        // Add body parts
+        for (BodyPart bp : snake.body) {
+            noodlePoints.add(new Vector2(bp.pos.x, bp.pos.y));
+        }
+        
+        // Set noodle thickness based on head size
+        float noodleThickness = snake.snakeHead.size * 1.8f;
 
-        // Render body parts first
-        for (int i = 1; i < snake.body.size(); i++) {
-            BodyPart bp = snake.body.get(i);
-            shapeRenderer.setColor(bp.color);
-            shapeRenderer.circle(bp.pos.x, bp.pos.y, bp.size, 15);
+        // Create slight color variations for noodle segments
+        Color baseColor = snake.snakeHead.color;
+        Color[] segmentColors = new Color[noodlePoints.size() - 1];
+        for (int i = 0; i < segmentColors.length; i++) {
+            float variation = 0.1f * ((float)Math.sin(i * 0.5f + System.currentTimeMillis() / 1000.0) + 1.0f);
+            segmentColors[i] = new Color(
+                baseColor.r - variation * 0.1f,
+                baseColor.g - variation * 0.1f,
+                baseColor.b + variation * 0.1f,
+                baseColor.a
+            );
         }
 
-        // Render head
-        Head head = snake.snakeHead;
-        shapeRenderer.setColor(head.color);
-        shapeRenderer.circle(head.pos.x, head.pos.y, head.size, 15);
-
+        // Draw the noodle shape
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        
+        // Draw continuous line with thickness and varying colors
+        for (int i = 0; i < noodlePoints.size() - 1; i++) {
+            Vector2 current = noodlePoints.get(i);
+            Vector2 next = noodlePoints.get(i + 1);
+            
+            // Use varying colors for each segment
+            shapeRenderer.setColor(segmentColors[i]);
+            
+            // Draw a thick line between points
+            shapeRenderer.rectLine(current.x, current.y, next.x, next.y, noodleThickness);
+        }
+        
+        // Draw rounded caps at each joint to make it smoother
+        for (int i = 0; i < noodlePoints.size(); i++) {
+            Vector2 point = noodlePoints.get(i);
+            
+            // Use head color for first point, segment colors for others
+            if (i == 0) {
+                shapeRenderer.setColor(baseColor);
+            } else {
+                shapeRenderer.setColor(segmentColors[i-1]);
+            }
+            
+            // Draw a circle at each joint
+            shapeRenderer.circle(point.x, point.y, noodleThickness / 2, 15);
+        }
+        
         shapeRenderer.end();
-
+        
+        // Draw eyes on the head to give it character
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+        shapeRenderer.setColor(Color.WHITE);
+        
+        // Calculate eye positions based on head position and direction
+        Vector2 headPos = snake.snakeHead.pos;
+        Vector2 direction = new Vector2();
+        
+        // If we have at least one body segment, determine direction
+        if (snake.body.size() > 1) {
+            Vector2 bodyPos = snake.body.get(1).pos;
+            direction.set(headPos).sub(bodyPos).nor();
+        } else {
+            direction.set(1, 0); // Default right direction
+        }
+        
+        // Calculate perpendicular vector for eye positioning
+        Vector2 perpendicular = new Vector2(-direction.y, direction.x);
+        
+        // Position eyes on the head
+        float eyeOffset = snake.snakeHead.size * 0.5f;
+        float eyeForwardOffset = snake.snakeHead.size * 0.5f;
+        float eyeSize = snake.snakeHead.size * 0.3f;
+        
+        Vector2 leftEye = new Vector2(headPos).add(
+            new Vector2(direction).scl(eyeForwardOffset).add(
+                new Vector2(perpendicular).scl(eyeOffset)
+            )
+        );
+        
+        Vector2 rightEye = new Vector2(headPos).add(
+            new Vector2(direction).scl(eyeForwardOffset).add(
+                new Vector2(perpendicular).scl(-eyeOffset)
+            )
+        );
+        
+        // Draw the white parts of eyes
+        shapeRenderer.circle(leftEye.x, leftEye.y, eyeSize, 10);
+        shapeRenderer.circle(rightEye.x, rightEye.y, eyeSize, 10);
+        
+        // Draw the pupils
+        shapeRenderer.setColor(Color.BLACK);
+        shapeRenderer.circle(leftEye.x, leftEye.y, eyeSize * 0.6f, 8);
+        shapeRenderer.circle(rightEye.x, rightEye.y, eyeSize * 0.6f, 8);
+        
+        shapeRenderer.end();
+        
         // Draw magnet circle if active
         if (snake.attractFood) {
             shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
-            shapeRenderer.setColor(Color.BLACK);
-            shapeRenderer.circle(head.pos.x, head.pos.y, 120, 15);
+            shapeRenderer.setColor(Color.WHITE);
+            shapeRenderer.circle(headPos.x, headPos.y, 120, 30);
             shapeRenderer.end();
         }
     }
