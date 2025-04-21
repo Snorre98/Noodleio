@@ -21,6 +21,5 @@ public class SpeedBoost extends PowerUp {
             shape.circle(pos.x, pos.y, size,25);
             shape.end();
         }
-
     }
 }

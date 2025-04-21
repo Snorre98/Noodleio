@@ -74,6 +74,15 @@ public class Config {
         SUPABASE_URL = url;
         SUPABASE_KEY = key;
         initialized = true;
-        Gdx.app.log("Config", "Configured from Android BuildConfig");
+        // Use Android's logging instead of LibGDX's logging
+        try {
+            // Try to use Android's Log class
+            Class<?> logClass = Class.forName("android.util.Log");
+            java.lang.reflect.Method logMethod = logClass.getMethod("d", String.class, String.class);
+            logMethod.invoke(null, "Config", "Configured from Android BuildConfig");
+        } catch (Exception e) {
+            // Fall back to standard output if we're not on Android
+            System.out.println("Config: Configured from Android BuildConfig");
+        }
     }
 }
