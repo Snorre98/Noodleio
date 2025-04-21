@@ -37,7 +37,6 @@ create table public."PlayerGameState" (
   score bigint not null default '50'::bigint,
   constraint PlayerGameState_pkey primary key (id),
   constraint PlayerGameState_player_id_key unique (player_id),
-  constraint PlayerGameState_session_id_key unique (session_id),
   constraint PlayerGameState_player_id_fkey foreign KEY (player_id) references "LobbyPlayer" (id) on delete CASCADE,
   constraint PlayerGameState_session_id_fkey foreign KEY (session_id) references "GameSession" (id) on delete CASCADE
 ) TABLESPACE pg_default;
