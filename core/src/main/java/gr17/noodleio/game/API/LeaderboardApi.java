@@ -1,7 +1,6 @@
 package gr17.noodleio.game.API;
 
 import java.util.List;
-import java.util.Random;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.GameSession;
@@ -122,29 +121,5 @@ public class LeaderboardApi {
         int minutes = (int) (seconds / 60);
         int remainingSeconds = (int) (seconds % 60);
         return String.format("%d:%02d", minutes, remainingSeconds);
-    }
-
-    /**
-     * Gets the most recent leaderboard message
-     * @return The formatted leaderboard message
-     */
-    public String getLeaderboardMessage() {
-        return leaderboardMessage;
-    }
-
-    /**
-     * Gets the most recent add entry message
-     * @return The add entry status message
-     */
-    public String getAddEntryMessage() {
-        return addEntryMessage;
-    }
-
-    /**
-     * Gets the underlying LeaderboardService
-     * @return The LeaderboardService instance
-     */
-    public LeaderboardViews getLeaderboardService() {
-        return leaderboardView;
     }
 }
