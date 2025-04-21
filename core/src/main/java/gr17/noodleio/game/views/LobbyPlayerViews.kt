@@ -292,7 +292,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
      *
      * @param playerId The ID of the player trying to start the game (must be lobby owner)
      * @param lobbyId The ID of the lobby to create a game session for
-     * @param winningScore Score required to win (default: 50)
+     * @param winningScore Score required to win (default: 5)
      * @param mapLength Map length (default: 1080)
      * @param mapHeight Map height (default: 1080)
      * @return The created GameSession or null if there was an error
@@ -300,7 +300,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
     fun startGameSession(
         playerId: String,
         lobbyId: String,
-        winningScore: Int = 50,
+        winningScore: Int = 5,
         mapLength: Int = 1080,
         mapHeight: Int = 1080
     ): Pair<GameSession?, String> {

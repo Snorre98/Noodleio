@@ -11,11 +11,13 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.utils.Array;
 
 import gr17.noodleio.game.API.PlayerGameStateApi;
 import gr17.noodleio.game.API.RealtimeGameStateApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
+import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
 import gr17.noodleio.game.util.ResourceManager;
@@ -29,7 +31,9 @@ import gr17.noodleio.game.Entities.Food.SpeedBoost;
 import gr17.noodleio.game.Entities.Food.MagnetBoost;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -883,6 +887,36 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     @Override
     public void onGameOver() {
         Gdx.app.log("PlayState", "Game over received");
-        // Could transition to an end game state here
+
+        // Create a LibGDX Array instead of an ArrayList
+        Array<PlayerResult> results = new Array<>();
+
+        // Sort players by score
+        List<PlayerGameState> sortedPlayers = new ArrayList<>(players.values());
+        Collections.sort(sortedPlayers, (p1, p2) -> Integer.compare(p2.getScore(), p1.getScore()));
+
+        // Add players to results
+        int rank = 1;
+        for (PlayerGameState player : sortedPlayers) {
+            String pid = player.getPlayer_id().replace("\"", "");
+            String name = pid.equals(playerId) ? playerName : "Player " + pid.substring(0, 4);
+            results.add(new PlayerResult(name, player.getScore()));
+        }
+
+        // Determine local player's placement
+        int placement = 1;
+        for (int i = 0; i < results.size; i++) {
+            if (results.get(i).name.equals(playerName)) {
+                placement = i + 1;
+                break;
+            }
+        }
+
+        // Create resource manager
+        ResourceManager rm = new ResourceManager();
+        rm.load();
+
+        // Transition to EndGameState
+        gsm.set(new EndGameState(gsm, results, playerName, placement, rm));
     }
 }
