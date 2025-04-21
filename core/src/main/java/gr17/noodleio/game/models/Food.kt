@@ -8,6 +8,7 @@ import kotlinx.serialization.Serializable
  * */
 @Serializable
 data class Food (
+    // TODO: delete or use
     val id: String,
     val session_id: String,
     val x_pos: Int,
@@ -15,9 +16,8 @@ data class Food (
     val was_eaten: Boolean,
 )
 
-
+/** Food database table definition in Supabase **/
 /*
-*
   create table public."Food" (
   id uuid not null default gen_random_uuid (),
   session_id uuid not null,
@@ -30,9 +30,3 @@ data class Food (
 ) TABLESPACE pg_default;
 *
 * */
-
-/*
----- DB function ----
-delete instance if wasEaten
-
-*/
