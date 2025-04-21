@@ -5,7 +5,6 @@ import com.badlogic.gdx.Input;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.Batch;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
@@ -22,6 +21,7 @@ import gr17.noodleio.game.util.ResourceManager;
 
 // Import snake-related classes
 import gr17.noodleio.game.Entities.Snake;
+import gr17.noodleio.game.Entities.Head;
 import gr17.noodleio.game.Entities.BodyPart;
 import gr17.noodleio.game.Entities.Food.Food;
 import gr17.noodleio.game.Entities.Food.PowerUp;
@@ -38,8 +38,9 @@ import java.util.concurrent.ConcurrentHashMap;
  * Uses cursor-based movement and realtime synchronization with other players.
  */
 public class PlayState extends State implements RealtimeGameStateApi.GameStateCallback {
+
     // Constants
-    private static final float MOVEMENT_DELAY = 0.05f;  // 50ms between movement updates
+    private static final float SYNC_INTERVAL = 0.1f;
     private static final Color BACKGROUND_COLOR = new Color(0.1f, 0.1f, 0.3f, 1f);
     private static final Color CURSOR_TARGET_COLOR = new Color(1f, 1f, 1f, 0.3f);
     private static final float CURSOR_TARGET_SIZE = 10f;
@@ -53,22 +54,22 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private String playerName;
     private GameSession currentSession;
     private ConcurrentHashMap<String, PlayerGameState> players = new ConcurrentHashMap<>();
-    private float movementCooldown = 0;
-
     private int lastReportedScore = 0;
     private float scoreUpdateTimer = 0;
     private static final float SCORE_UPDATE_INTERVAL = 1.0f; // Update score every second
 
+    // Client-side prediction
+    private Vector2 clientPredictedPosition = new Vector2();
+    private Vector2 serverConfirmedPosition = new Vector2();
+    private float syncTimer = 0;
 
     // Cursor tracking
     private Vector2 cursorPosition = new Vector2();
     private Vector2 targetPosition = new Vector2();
-    private Vector2 currentPlayerPosition = new Vector2();
     private boolean isMovementActive = false;
 
     // Speed boost status
     private boolean hasSpeedBoost = false;
-    private float speedMultiplier = 1.0f; // TODO
 
     // APIs
     private RealtimeGameStateApi realtimeGameStateApi;
@@ -134,7 +135,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
                 prevPos.set(tempPos);
             }
-
         }
 
         public void render(ShapeRenderer shapeRenderer) {
@@ -282,47 +282,31 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      */
     @Override
     public void update(float dt) {
-        // Update movement cooldown
-        if (movementCooldown > 0) {
-            movementCooldown -= dt;
-            if (movementCooldown < 0) movementCooldown = 0;
-        }
-
         // Process input
         handleInput();
+        
+        float cappedDt = Math.min(dt, 1/30f); // Cap at 30 FPS minimum
 
-        // Update player position if movement is active
-        if (isMovementActive && movementCooldown <= 0) {
-            movePlayerTowardsCursor();
-            movementCooldown = MOVEMENT_DELAY;
-        }
-
-        // Update current player position reference
-        PlayerGameState localPlayer = getLocalPlayerState();
-        if (localPlayer != null) {
-            currentPlayerPosition.set(localPlayer.getX_pos(), localPlayer.getY_pos());
-
-            // Convert to screen coordinates for the snake
-            Vector2 screenPos = gameToScreenCoordinates(currentPlayerPosition);
-
-            // Update snake head position to match player position
-            if (localSnake != null) {
-                // Update snake position to match game position
-                localSnake.pos.set(screenPos);
-                localSnake.snakeHead.pos.set(screenPos);
-
-                // Create a Vector3 for the snake's update method
+        handleLocalMovement(cappedDt);
+        
+        // Sync with server periodically
+        syncWithServer(dt);
+        
+        // Update the snake position using predicted position
+        if (localSnake != null) {
+            Vector2 screenPos = gameToScreenCoordinates(clientPredictedPosition);
+            localSnake.pos.set(screenPos);
+            localSnake.snakeHead.pos.set(screenPos);
+            
+            // Update snake direction toward cursor for visual feedback
+            if (isMovementActive) {
                 Vector3 snakeTargetPos = new Vector3();
-
-                if (isMovementActive) {
-                    // Use mouse position as target for visual effect
-                    snakeTargetPos.set(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY(), 0);
-                    cam.unproject(snakeTargetPos);
-                    localSnake.update(snakeTargetPos);
-                }
+                snakeTargetPos.set(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY(), 0);
+                cam.unproject(snakeTargetPos);
+                localSnake.update(snakeTargetPos);
             }
         }
-
+        
         // Update score in the database if it has changed
         scoreUpdateTimer += dt;
         if (scoreUpdateTimer >= SCORE_UPDATE_INTERVAL) {
@@ -409,16 +393,25 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      * Updates the camera position to follow the player
      */
     private void updateCameraPosition() {
-        PlayerGameState localPlayer = getLocalPlayerState();
-        if (localPlayer != null) {
-            // Convert game position to screen position
-            Vector2 screenPos = gameToScreenCoordinates(
-                new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
-
-            // Smoothly move camera toward player
+        // Use the client predicted position for smoother camera following
+        if (!clientPredictedPosition.isZero()) {
+            // Convert predicted position to screen coordinates
+            Vector2 screenPos = gameToScreenCoordinates(clientPredictedPosition);
+            
+            // Update camera position
             cam.position.x = screenPos.x;
             cam.position.y = screenPos.y;
             cam.update();
+        } else {
+            // Fallback to server position if client position not initialized
+            PlayerGameState localPlayer = getLocalPlayerState();
+            if (localPlayer != null) {
+                Vector2 screenPos = gameToScreenCoordinates(
+                    new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
+                cam.position.x = screenPos.x;
+                cam.position.y = screenPos.y;
+                cam.update();
+            }
         }
     }
 
@@ -426,21 +419,26 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      * Update interactions with food items
      */
     private void updateFoodInteractions() {
-        PlayerGameState localPlayer = getLocalPlayerState();
-        if (localPlayer == null || localSnake == null) return;
-
+        if (localSnake == null) return;
+        
         for (int i = 0; i < foods.size(); i++) {
             Food f = foods.get(i);
+            
+            // Skip already eaten food
+            if (f.isEat) continue;
 
+            // Check collision with snake
             if (localSnake.checkFoodCollision(f)) {
-                // Food was eaten, could update score in database here
+                // Food was eaten, updated in checkFoodCollision
             }
 
-            if (localSnake.attractFood && localSnake.snakeHead.attractFoodDetection(f.collisionShape)) {
-                Vector2 snakePos = new Vector2(localSnake.pos.x, localSnake.pos.y);
-                f.getAttracted(snakePos);
+            // Handle magnet attraction - only if needed
+            if (localSnake.attractFood && !f.isEat && 
+                localSnake.snakeHead.attractFoodDetection(f.collisionShape)) {
+                f.getAttracted(localSnake.pos);
             }
 
+            // Update food position
             f.update();
         }
     }
@@ -456,14 +454,12 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                 if (p.getType().equals("speed")) {
                     localSnake.enableSpeedBoost();
                     hasSpeedBoost = true;
-                    speedMultiplier = 2.0f; // Increase movement speed
 
                     // Schedule to reset speed after duration
                     new Thread(() -> {
                         try {
                             Thread.sleep(4500); // Same duration as in Snake class
                             hasSpeedBoost = false;
-                            speedMultiplier = 1.0f;
                         } catch (InterruptedException e) {
                             e.printStackTrace();
                         }
@@ -480,59 +476,76 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
     }
 
-    /**
-     * Moves the player towards the cursor position by making appropriate API calls.
-     */
-    private void movePlayerTowardsCursor() {
-        // Get current player state
+    private void handleLocalMovement(float dt) {
+        // Skip if no mouse input
+        if (!isMovementActive) return;
+        
+        // Get current server position
         PlayerGameState localPlayer = getLocalPlayerState();
         if (localPlayer == null) return;
-
-        float currentX = localPlayer.getX_pos();
-        float currentY = localPlayer.getY_pos();
-
-        // Get the raw mouse position and convert to game space
+        
+        // Initialize positions if needed
+        if (serverConfirmedPosition.isZero()) {
+            serverConfirmedPosition.set(localPlayer.getX_pos(), localPlayer.getY_pos());
+            clientPredictedPosition.set(serverConfirmedPosition);
+        }
+        
+        // Get target position from mouse
         Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        cam.unproject(mousePos); // This properly handles the coordinate conversion
+        cam.unproject(mousePos);
+        Vector2 targetPos = screenToGameCoordinates(new Vector2(mousePos.x, mousePos.y));
+        
+        // Calculate direction and distance
+        Vector2 direction = new Vector2(targetPos).sub(clientPredictedPosition);
+        float distance = direction.len();
+        
+        // Only move if far enough from target
+        if (distance > 1.0f) {
+            // Normalize and scale by speed and delta time
+            direction.nor();
+            // Increased speeds for more responsive movement
+            float speed = hasSpeedBoost ? 150.0f : 100.0f; // Much higher units per second
+            clientPredictedPosition.add(
+                direction.x * speed * dt,
+                direction.y * speed * dt
+            );
+            
+            // Keep within map bounds (assuming 1080x1080 map)
+            clientPredictedPosition.x = Math.max(0, Math.min(clientPredictedPosition.x, 1080));
+            clientPredictedPosition.y = Math.max(0, Math.min(clientPredictedPosition.y, 1080));
+        }
+    }
 
-        // Convert the mouse position to target position in game coordinates
-        targetPosition = screenToGameCoordinates(new Vector2(mousePos.x, mousePos.y));
-        float targetX = targetPosition.x;
-        float targetY = targetPosition.y;
-
-        // Debug output to console
-        Gdx.app.debug("PlayState", String.format(
-            "Current: (%.1f, %.1f), Target: (%.1f, %.1f)",
-            currentX, currentY, targetX, targetY));
-
-        // Check which direction to move based on the cursor position
-        try {
-            // Apply speed multiplier if speed boost is active
-            int movesToMake = hasSpeedBoost ? 2 : 1;
-
-            for (int i = 0; i < movesToMake; i++) {
-                // Move horizontally
-                if (Math.abs(targetX - currentX) >= 1.0f) {
-                    if (targetX > currentX) {
+    private void syncWithServer(float dt) {
+        syncTimer += dt;
+        
+        // Time to sync with server
+        if (syncTimer >= SYNC_INTERVAL) {
+            syncTimer = 0;
+            
+            // Calculate direction from last confirmed position
+            Vector2 direction = new Vector2(clientPredictedPosition).sub(serverConfirmedPosition);
+            float distance = direction.len();
+            
+            // Only send if moved significantly
+            if (distance > 8.0f) {
+                // Decide direction based on largest component
+                if (Math.abs(direction.x) > Math.abs(direction.y)) {
+                    // Move horizontally
+                    if (direction.x > 0) {
                         playerGameStateApi.movePlayerRight(playerId, sessionId);
-                    } else if (targetX < currentX) {
+                    } else {
                         playerGameStateApi.movePlayerLeft(playerId, sessionId);
                     }
-                }
-
-                // Move vertically
-                if (Math.abs(targetY - currentY) >= 1.0f) {
-                    if (targetY > currentY) {
-                        // Note: DB functions already handle the Y direction correctly
-                        // move_up decreases Y, move_down increases Y
+                } else {
+                    // Move vertically
+                    if (direction.y > 0) {
                         playerGameStateApi.movePlayerDown(playerId, sessionId);
-                    } else if (targetY < currentY) {
+                    } else {
                         playerGameStateApi.movePlayerUp(playerId, sessionId);
                     }
                 }
             }
-        } catch (Exception e) {
-            Gdx.app.error("PlayState", "Error processing movement", e);
         }
     }
 
@@ -566,7 +579,6 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
 
         // Direct mapping - don't invert Y as the DB functions already handle it correctly
-        // DB functions: move_up decreases Y, move_down increases Y (matches screen coordinates)
         float gameX = screenPos.x * mapWidth / Gdx.graphics.getWidth();
         float gameY = screenPos.y * mapHeight / Gdx.graphics.getHeight();
 
@@ -626,42 +638,42 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      * Renders game elements using ShapeRenderer and SpriteBatch.
      */
     private void renderGameElements(SpriteBatch sb) {
-        // Begin game batch with camera projection
-        gameBatch.setProjectionMatrix(cam.combined);
-        gameBatch.begin();
-        gameBatch.end();
-
-        // Render map boundary first so it's behind everything else
+        // Draw map boundary
         renderMapBoundary();
-
-        // Render foods
-        for (Food f : foods) {
-            f.render(cam);
-        }
-
-        // Render power-ups
-        for (PowerUp p : powerUps) {
-            p.render(cam);
-        }
-
-        // Begin shape rendering for cursor target
+        
         shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Draw all foods
+        for (Food f : foods) {
+            if (!f.isEat) {
+                shapes.setColor(Color.RED);
+                shapes.circle(f.pos.x, f.pos.y, f.size, 15);
+            }
+        }
+
+        // Draw all power-ups
+        for (PowerUp p : powerUps) {
+            if (!p.isEat) {
+                if (p.getType().equals("speed")) {
+                    shapes.setColor(Color.BLUE);
+                } else if (p.getType().equals("magnet")) {
+                    shapes.setColor(Color.GREEN);
+                }
+                shapes.circle(p.pos.x, p.pos.y, p.size, 15);
+            }
+        }
 
         // Draw cursor target if movement is active
         if (isMovementActive) {
             shapes.setColor(CURSOR_TARGET_COLOR);
-            // Use the actual mouse position for the cursor target rather than converted coordinates
             Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-            cam.unproject(mousePos); // Convert to camera coordinates
+            cam.unproject(mousePos);
             shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
 
             // Draw a line from player to target
-            PlayerGameState localPlayer = getLocalPlayerState();
-            if (localPlayer != null) {
-                Vector2 playerScreenPos = gameToScreenCoordinates(
-                    new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
+            if (localSnake != null) {
                 shapes.setColor(Color.WHITE);
-                shapes.rectLine(playerScreenPos.x, playerScreenPos.y,
+                shapes.rectLine(localSnake.pos.x, localSnake.pos.y,
                     mousePos.x, mousePos.y, 1);
             }
         }
@@ -673,7 +685,33 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Render local snake if it exists
         if (localSnake != null) {
-            localSnake.render(cam);
+            renderSnake(localSnake, shapes);
+        }
+    }
+
+    private void renderSnake(Snake snake, ShapeRenderer shapeRenderer) {
+        shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Render body parts first
+        for (int i = 1; i < snake.body.size(); i++) {
+            BodyPart bp = snake.body.get(i);
+            shapeRenderer.setColor(bp.color);
+            shapeRenderer.circle(bp.pos.x, bp.pos.y, bp.size, 15);
+        }
+
+        // Render head
+        Head head = snake.snakeHead;
+        shapeRenderer.setColor(head.color);
+        shapeRenderer.circle(head.pos.x, head.pos.y, head.size, 15);
+
+        shapeRenderer.end();
+
+        // Draw magnet circle if active
+        if (snake.attractFood) {
+            shapeRenderer.begin(ShapeRenderer.ShapeType.Line);
+            shapeRenderer.setColor(Color.BLACK);
+            shapeRenderer.circle(head.pos.x, head.pos.y, 120, 15);
+            shapeRenderer.end();
         }
     }
 
@@ -695,42 +733,32 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         Vector2 bottomRight = gameToScreenCoordinates(new Vector2(mapWidth, mapHeight));
 
         // Set up shape renderer for lines
-        shapes.setProjectionMatrix(cam.combined);
         shapes.begin(ShapeRenderer.ShapeType.Line);
         shapes.setColor(Color.RED);
 
         // Draw map border (thicker line for visibility)
         float borderThickness = 3.0f;
 
-        // Draw top border
+        // Draw borders
         shapes.rectLine(topLeft.x, topLeft.y, topRight.x, topRight.y, borderThickness);
-
-        // Draw right border
         shapes.rectLine(topRight.x, topRight.y, bottomRight.x, bottomRight.y, borderThickness);
-
-        // Draw bottom border
         shapes.rectLine(bottomRight.x, bottomRight.y, bottomLeft.x, bottomLeft.y, borderThickness);
-
-        // Draw left border
         shapes.rectLine(bottomLeft.x, bottomLeft.y, topLeft.x, topLeft.y, borderThickness);
 
         // Add corner markers for better visibility
         float markerSize = 20.0f;
         shapes.setColor(Color.YELLOW);
 
-        // Top-left corner marker
+        // Draw corner markers
         shapes.rectLine(topLeft.x, topLeft.y, topLeft.x + markerSize, topLeft.y, borderThickness);
         shapes.rectLine(topLeft.x, topLeft.y, topLeft.x, topLeft.y + markerSize, borderThickness);
-
-        // Top-right corner marker
+        
         shapes.rectLine(topRight.x, topRight.y, topRight.x - markerSize, topRight.y, borderThickness);
         shapes.rectLine(topRight.x, topRight.y, topRight.x, topRight.y + markerSize, borderThickness);
-
-        // Bottom-right corner marker
+        
         shapes.rectLine(bottomRight.x, bottomRight.y, bottomRight.x - markerSize, bottomRight.y, borderThickness);
         shapes.rectLine(bottomRight.x, bottomRight.y, bottomRight.x, bottomRight.y - markerSize, borderThickness);
-
-        // Bottom-left corner marker
+        
         shapes.rectLine(bottomLeft.x, bottomLeft.y, bottomLeft.x + markerSize, bottomLeft.y, borderThickness);
         shapes.rectLine(bottomLeft.x, bottomLeft.y, bottomLeft.x, bottomLeft.y - markerSize, borderThickness);
 
@@ -745,11 +773,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         shapes.begin(ShapeRenderer.ShapeType.Filled);
 
         // Render all other player snakes
-        for (Map.Entry<String, OtherPlayerSnake> entry : otherPlayerSnakes.entrySet()) {
-            String pid = entry.getKey();
-            OtherPlayerSnake snake = entry.getValue();
-
-            // Render the snake (head and body)
+        for (OtherPlayerSnake snake : otherPlayerSnakes.values()) {
             snake.render(shapes);
         }
 
@@ -757,6 +781,8 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
         // Draw player names above other players
         gameBatch.begin();
+        gameBatch.setProjectionMatrix(cam.combined);
+        
         for (Map.Entry<String, OtherPlayerSnake> entry : otherPlayerSnakes.entrySet()) {
             String pid = entry.getKey();
             OtherPlayerSnake snake = entry.getValue();
@@ -765,6 +791,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             String displayName = pid.substring(0, Math.min(4, pid.length()));
             font.draw(gameBatch, displayName, snake.headPosition.x - 15, snake.headPosition.y + 30);
         }
+        
         gameBatch.end();
     }
 
@@ -859,10 +886,15 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             // Clean player ID and store the updated state
             String pid = playerState.getPlayer_id().replace("\"", "");
             players.put(pid, playerState);
-
-            // Update current player position if this is local player
+            
             if (pid.equals(playerId)) {
-                currentPlayerPosition.set(playerState.getX_pos(), playerState.getY_pos());
+                serverConfirmedPosition.set(playerState.getX_pos(), playerState.getY_pos());
+                
+                // Optional correction if client is too far from server
+                Vector2 diff = new Vector2(clientPredictedPosition).sub(serverConfirmedPosition);
+                if (diff.len() > 32) { // If more than 2 steps off
+                    clientPredictedPosition.lerp(serverConfirmedPosition, 0.5f);
+                }
             }
         } catch (Exception e) {
             Gdx.app.error("PlayState", "Error updating player state", e);
