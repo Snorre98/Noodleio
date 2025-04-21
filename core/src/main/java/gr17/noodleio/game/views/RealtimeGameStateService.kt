@@ -22,7 +22,7 @@ import kotlin.coroutines.CoroutineContext
  * Handles synchronization of player positions and game state
  * This is a one-way service - client only receives updates from server
  */
-class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig) : CoroutineScope {
+class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : CoroutineScope {
 
     private fun extractNumberValue(value: Any?): Number {
         return when (value) {
@@ -357,23 +357,5 @@ class RealtimeGameStateService(private val environmentConfig: EnvironmentConfig)
      */
     fun getPlayerStates(): Map<String, PlayerGameState> {
         return playerStates.toMap()
-    }
-
-    /**
-     * Get current game session
-     */
-    fun getCurrentSession(): GameSession? {
-        return currentSession
-    }
-
-    /**
-     * Get connection status
-     */
-    fun getConnectionStatus(): String {
-        return if (isConnected) {
-            "Connected to game session: $sessionId"
-        } else {
-            "Not connected" + (lastError?.let { ": $it" } ?: "")
-        }
     }
 }
