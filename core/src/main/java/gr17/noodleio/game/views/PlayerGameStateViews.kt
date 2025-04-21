@@ -7,7 +7,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-class PlayerGameStateViews(private val environmentConfig: EnvironmentConfig) {
+class PlayerGameStateViews(environmentConfig: EnvironmentConfig) {
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
 
