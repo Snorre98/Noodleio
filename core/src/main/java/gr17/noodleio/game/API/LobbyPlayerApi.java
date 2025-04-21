@@ -1,5 +1,7 @@
 package gr17.noodleio.game.API;
 
+import com.badlogic.gdx.Gdx;
+
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
 import gr17.noodleio.game.views.LobbyPlayerViews;
@@ -189,6 +191,26 @@ public class LobbyPlayerApi {
      */
     public String startGameSession(String playerId, String lobbyId) {
         return startGameSession(playerId, lobbyId, 50, 1080, 1080);
+    }
+
+    public String checkActiveGameSession(String lobbyId) {
+        try {
+            // Check if an active game session exists for this lobby
+            return lobbyPlayerViews.checkActiveGameSession(lobbyId);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error checking for active game session", e);
+            return null;
+        }
+    }
+
+    public String getPlayerIdFromName(String playerName) {
+        try {
+            // Get player ID from player name
+            return lobbyPlayerViews.getPlayerIdFromName(playerName);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error getting player ID from name", e);
+            return null;
+        }
     }
 
     /**

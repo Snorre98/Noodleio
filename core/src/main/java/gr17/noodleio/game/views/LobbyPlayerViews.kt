@@ -4,6 +4,7 @@ import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
+import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.buildJsonObject
@@ -361,6 +362,63 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                 println("Error starting game session: ${e.message}")
                 e.printStackTrace()
                 return@runBlocking Pair(null, "Error starting game session: ${e.message}")
+            }
+        }
+    }
+
+    fun checkActiveGameSession(lobbyId: String): String {
+        return runBlocking {
+            try {
+                val response = serviceManager.db
+                    .from("GameSession")
+                    .select {
+                        filter {
+                            eq("lobby_id", lobbyId)
+                            // Use isExact with null to find rows where ended_at IS NULL
+                            exact("ended_at", null)  // Only active sessions
+                        }
+                    }
+
+                try {
+                    val sessions = response.decodeList<GameSession>()
+                    if (sessions.isNotEmpty()) {
+                        val session = sessions.first()
+                        "Active session found - session_id: ${session.id}"
+                    } else {
+                        "No active game session found"
+                    }
+                } catch (e: Exception) {
+                    "Error decoding game sessions: ${e.message}"
+                }
+            } catch (e: Exception) {
+                "Error checking for active game session: ${e.message}"
+            }
+        }
+    }
+
+    fun getPlayerIdFromName(playerName: String): String {
+        return runBlocking {
+            try {
+                val response = serviceManager.db
+                    .from("LobbyPlayer")
+                    .select {
+                        filter {
+                            eq("player_name", playerName)
+                        }
+                    }
+
+                try {
+                    val players = response.decodeList<LobbyPlayer>()
+                    if (players.isNotEmpty()) {
+                        players.first().id
+                    } else {
+                        ""
+                    }
+                } catch (e: Exception) {
+                    ""
+                }
+            } catch (e: Exception) {
+                ""
             }
         }
     }

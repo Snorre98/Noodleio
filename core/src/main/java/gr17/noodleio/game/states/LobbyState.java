@@ -39,6 +39,9 @@ public class LobbyState extends State {
     // API for lobby player operations
     private LobbyPlayerApi lobbyPlayerApi;
 
+    private float gameSessionCheckTimer = 0;
+    private static final float GAME_SESSION_CHECK_INTERVAL = 2.0f; // Check every 2 seconds
+
     public LobbyState(GameStateManager gsm) {
         super(gsm);
 
@@ -308,6 +311,59 @@ public class LobbyState extends State {
     @Override
     public void update(float dt) {
         stage.act(dt);
+
+        // Add game session check logic
+        gameSessionCheckTimer += dt;
+        if (gameSessionCheckTimer >= GAME_SESSION_CHECK_INTERVAL) {
+            gameSessionCheckTimer = 0;
+            checkForActiveGameSession();
+        }
+    }
+
+    private void checkForActiveGameSession() {
+        if (lobbyId != null) {
+            try {
+                // Check if there's an active game session for this lobby
+                String result = lobbyPlayerApi.checkActiveGameSession(lobbyId);
+
+                if (result != null && result.contains("session_id:")) {
+                    // Extract session ID
+                    String sessionId = extractSessionId(result);
+                    if (sessionId != null && !sessionId.isEmpty()) {
+                        Gdx.app.log("LobbyState", "Active game session found: " + sessionId);
+
+                        // Create resource manager
+                        ResourceManager rm = new ResourceManager();
+                        rm.load();
+
+                        // Get player ID for this client if not already known
+                        if (playerId == null || playerId.equals("Not needed")) {
+                            // Get player ID from the player name
+                            playerId = lobbyPlayerApi.getPlayerIdFromName(playerName);
+                        }
+
+                        // Transition to PlayState
+                        PlayState playState = new PlayState(gsm, sessionId, playerId, playerName, rm);
+                        gsm.set(playState);
+                    }
+                }
+            } catch (Exception e) {
+                Gdx.app.error("LobbyState", "Error checking for active game session", e);
+            }
+        }
+    }
+
+    private String extractSessionId(String result) {
+        try {
+            // Extract session ID from result string
+            int startIndex = result.indexOf("session_id:") + "session_id:".length();
+            int endIndex = result.indexOf(",", startIndex);
+            if (endIndex == -1) endIndex = result.length();
+            return result.substring(startIndex, endIndex).trim();
+        } catch (Exception e) {
+            Gdx.app.error("LobbyState", "Error extracting session ID", e);
+            return null;
+        }
     }
 
     @Override
