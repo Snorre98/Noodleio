@@ -47,23 +47,6 @@ public class LobbyPlayerApi {
     }
 
     /**
-     * Creates a player with random name and joins a lobby (useful for testing)
-     * @param lobbyId The ID of the lobby to join
-     * @return Status message indicating success or failure
-     */
-    public String joinLobbyWithRandomPlayer(String lobbyId) {
-        try {
-            // Generate a player name with timestamp to ensure uniqueness
-            String playerName = "TestPlayer_" + System.currentTimeMillis();
-            return joinLobby(playerName, lobbyId);
-        } catch (Exception e) {
-            joinLobbyMessage = "Error creating random player: " + e.getMessage();
-            e.printStackTrace();
-            return joinLobbyMessage;
-        }
-    }
-
-    /**
      * Gets all players in a lobby
      * @param lobbyId The ID of the lobby
      * @return Status message with list of players
@@ -118,12 +101,14 @@ public class LobbyPlayerApi {
         }
     }
 
+
     /**
      * Gets a player by their ID
      * @param playerId The ID of the player to retrieve
      * @return Status message with player details if found
      */
     public String getPlayerById(String playerId) {
+        // TODO: use this in refactor
         try {
             LobbyPlayer player = lobbyPlayerViews.getPlayerById(playerId);
 
@@ -217,45 +202,5 @@ public class LobbyPlayerApi {
             Gdx.app.error("LobbyPlayerApi", "Error checking if player is lobby owner", e);
             return false;
         }
-    }
-
-    /**
-     * Gets the most recent start game session message
-     * @return The start game session status message
-     */
-    public String getStartGameSessionMessage() {
-        return startGameSessionMessage;
-    }
-
-    /**
-     * Gets the most recent join lobby message
-     * @return The join lobby status message
-     */
-    public String getJoinLobbyMessage() {
-        return joinLobbyMessage;
-    }
-
-    /**
-     * Gets the most recent players list message
-     * @return The players list message
-     */
-    public String getPlayersListMessage() {
-        return playersListMessage;
-    }
-
-    /**
-     * Gets the most recent leave lobby message
-     * @return The leave lobby status message
-     */
-    public String getLeaveLobbyMessage() {
-        return leaveLobbyMessage;
-    }
-
-    /**
-     * Gets the underlying LobbyPlayerService
-     * @return The LobbyPlayerService instance
-     */
-    public LobbyPlayerViews getLobbyPlayerService() {
-        return lobbyPlayerViews;
     }
 }
