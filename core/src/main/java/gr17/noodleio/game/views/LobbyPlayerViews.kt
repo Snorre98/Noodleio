@@ -4,7 +4,6 @@ import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
-import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.buildJsonObject
@@ -17,7 +16,7 @@ import java.util.UUID
  * For a player to join a lobby
  * The player joins the lobby by posting the lobby key (the lobby UUID)
  * */
-class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
+class LobbyPlayerViews(environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
