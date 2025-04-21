@@ -22,7 +22,6 @@ import gr17.noodleio.game.API.LobbyApi;
 import gr17.noodleio.game.API.LobbyPlayerApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.models.LobbyPlayer;
 
 public class MenuState extends State {
     private Stage stage;
@@ -75,11 +74,6 @@ public class MenuState extends State {
             }
         };
 
-//        // Log the config values
-//        Gdx.app.log("MenuState", "Initializing APIs with Supabase URL: " + environmentConfig.getSupabaseUrl());
-//        Gdx.app.log("MenuState", "API Key starts with: " +
-//            (environmentConfig.getSupabaseKey().length() > 5 ?
-//                environmentConfig.getSupabaseKey().substring(0, 10) + "..." : "invalid"));
 
         // Initialize lobby API
         lobbyApi = new LobbyApi(environmentConfig);

@@ -19,9 +19,6 @@ import com.badlogic.gdx.utils.viewport.FitViewport;
 import gr17.noodleio.game.API.LeaderboardApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
-import gr17.noodleio.game.models.LeaderboardEntry;
-
-import java.util.List;
 
 public class LeaderboardState extends State {
     private Stage stage;
