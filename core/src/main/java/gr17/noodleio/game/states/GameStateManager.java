@@ -13,7 +13,7 @@ public class GameStateManager {
     private GameStateManager() {
         states = new Stack<>();
     }
-    
+
     public boolean isEmpty() {
         return states.isEmpty();
     }
@@ -35,12 +35,6 @@ public class GameStateManager {
         states.push(state);
     }
 
-    public void pop() {
-        if (!states.isEmpty()) {
-            states.peek().dispose();
-            states.pop();
-        }
-    }
 
     public void set(State state) {
         if (!states.isEmpty()) {
@@ -61,7 +55,7 @@ public class GameStateManager {
             states.peek().render(sb);
         }
     }
-    
+
     public void disposeAll() {
         while (!states.isEmpty()) {
             State state = states.pop();
