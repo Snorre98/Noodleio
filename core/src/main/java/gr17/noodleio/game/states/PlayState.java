@@ -377,12 +377,39 @@ private void renderGameElements(SpriteBatch sb) {
         // Position snake in the center initially
         localSnake.pos.set(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
         localSnake.snakeHead.pos.set(localSnake.pos);
+        
+        // Initialize client predicted position to match snake's starting position
+        // This ensures the camera and server know where the snake is from the start
+        clientPredictedPosition = screenToGameCoordinates(new Vector2(localSnake.pos.x, localSnake.pos.y));
+        serverConfirmedPosition = new Vector2(clientPredictedPosition);
+        
+        // Ensure camera is positioned on snake from the beginning
+        cam.position.x = localSnake.pos.x;
+        cam.position.y = localSnake.pos.y;
+        cam.update();
 
         // Initialize foods with visibility distance from camera
         spawnFoods();
 
         // Initialize power-ups
         spawnPowerUps();
+        
+        // Initialize body segments properly
+        for (int i = 1; i < localSnake.body.size(); i++) {
+            BodyPart segment = localSnake.body.get(i);
+            BodyPart previous = localSnake.body.get(i-1);
+            // Position segments properly behind each other
+            float distance = segment.size + 8;
+            segment.pos.set(previous.pos.x - distance, previous.pos.y);
+        }
+        
+        // Ensure the snake gets updated at least once before rendering
+        if (localSnake != null) {
+            // Set a default direction (right) if no movement yet
+            Vector3 defaultDirection = new Vector3(
+                localSnake.pos.x + 100, localSnake.pos.y, 0);
+            localSnake.update(defaultDirection);
+        }
     }
 
     /**
@@ -424,6 +451,17 @@ private void renderGameElements(SpriteBatch sb) {
         
         float cappedDt = Math.min(dt, 1/30f); // Cap at 30 FPS minimum
 
+        // If no movement yet but we're just starting, initialize positions
+        if (!isMovementActive && serverConfirmedPosition.isZero() && clientPredictedPosition.isZero()) {
+            // Initialize positions to snake's starting point
+            if (localSnake != null) {
+                Vector2 initialGamePos = screenToGameCoordinates(new Vector2(localSnake.pos.x, localSnake.pos.y));
+                clientPredictedPosition.set(initialGamePos);
+                serverConfirmedPosition.set(initialGamePos);
+            }
+        }
+        
+        // Now handle movement if active
         handleLocalMovement(cappedDt);
         
         // Sync with server periodically
@@ -435,12 +473,16 @@ private void renderGameElements(SpriteBatch sb) {
             localSnake.pos.set(screenPos);
             localSnake.snakeHead.pos.set(screenPos);
             
-            // Update snake direction toward cursor for visual feedback
+            // Update snake direction - even if not moving, provide a default direction
             if (isMovementActive) {
                 Vector3 snakeTargetPos = new Vector3();
                 snakeTargetPos.set(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY(), 0);
                 cam.unproject(snakeTargetPos);
                 localSnake.update(snakeTargetPos);
+            } else {
+                // Default direction if not moving (look right)
+                Vector3 defaultDir = new Vector3(localSnake.pos.x + 100, localSnake.pos.y, 0);
+                localSnake.update(defaultDir);
             }
         }
         
@@ -539,16 +581,22 @@ private void renderGameElements(SpriteBatch sb) {
             cam.position.x = screenPos.x;
             cam.position.y = screenPos.y;
             cam.update();
-        } else {
-            // Fallback to server position if client position not initialized
+        } 
+        // Fallback to server position if client position not initialized
+        else if (getLocalPlayerState() != null) {
             PlayerGameState localPlayer = getLocalPlayerState();
-            if (localPlayer != null) {
-                Vector2 screenPos = gameToScreenCoordinates(
-                    new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
-                cam.position.x = screenPos.x;
-                cam.position.y = screenPos.y;
-                cam.update();
-            }
+            Vector2 screenPos = gameToScreenCoordinates(
+                new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
+            cam.position.x = screenPos.x;
+            cam.position.y = screenPos.y;
+            cam.update();
+        }
+        // Final fallback - use the local snake's position directly
+        else if (localSnake != null) {
+            // Use the snake's position directly as fallback
+            cam.position.x = localSnake.pos.x;
+            cam.position.y = localSnake.pos.y;
+            cam.update();
         }
     }
 
