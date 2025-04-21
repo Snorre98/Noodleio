@@ -10,13 +10,7 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 
-class LeaderboardViews(private val environmentConfig: EnvironmentConfig) {
-    // Custom JSON serializer with more lenient settings
-    private val customJson = Json {
-        ignoreUnknownKeys = true
-        coerceInputValues = true  // This allows null values to be coerced to defaults
-        isLenient = true
-    }
+class LeaderboardViews(environmentConfig: EnvironmentConfig) {
 
     // Create our own service manager with custom serializer
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
