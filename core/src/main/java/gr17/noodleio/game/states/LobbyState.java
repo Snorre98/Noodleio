@@ -45,6 +45,8 @@ public class LobbyState extends State {
     private float playerListRefreshTimer = 0;
     private static final float PLAYER_LIST_REFRESH_INTERVAL = 3.0f; // Refresh every 3 seconds
 
+    private TextButton startGameButton;
+
     public LobbyState(GameStateManager gsm) {
         super(gsm);
 
@@ -165,6 +167,8 @@ public class LobbyState extends State {
         }
     }
 
+    private boolean isLobbyOwner = false;
+
     private void createUI() {
         // Create table for UI layout
         table = new Table();
@@ -174,44 +178,31 @@ public class LobbyState extends State {
         // Add lobby title
         Label titleLabel = new Label("LOBBY", skin);
         titleLabel.setFontScale(2.0f);
-        table.add(titleLabel).colspan(2).padBottom(40);
+        table.add(titleLabel).padBottom(20);
         table.row();
 
-        // Add lobby code display
-        table.add(new Label("Lobby Code:", skin)).padRight(20);
+        // Add lobby code section
+        table.add(new Label("Lobby Code:", skin)).padBottom(10);
+        table.row();
         lobbyCodeLabel = new Label("-----", skin);
-        table.row();
-        table.add(lobbyCodeLabel).padBottom(20);
-        table.row();
-
-        // Add player name display
-        table.add(new Label("You:", skin)).padRight(20);
-        Label playerNameLabel = new Label("-----", skin);
-        table.add(playerNameLabel).padBottom(30);
+        table.add(lobbyCodeLabel).padBottom(15);
         table.row();
 
-        // Add players list title
-        table.add(new Label("Players:", skin)).colspan(2).padBottom(10);
+        // Add player name section - combine label and value on one line
+        Label playerNameLabel = new Label("You: -----", skin);
+        table.add(playerNameLabel).padBottom(15);
         table.row();
 
-        // Add players list
+        // Add players list title and list
+        table.add(new Label("Players:", skin)).padBottom(10);
+        table.row();
         playersLabel = new Label("Loading players...", skin);
-        table.add(playersLabel).colspan(2).padBottom(30);
+        table.add(playersLabel).padBottom(15);
         table.row();
 
-        // Add buttons with consistent sizing and styling to match MenuState
-        TextButton startGameButton = new TextButton("Start Game", skin);
-        table.add(startGameButton).width(200).height(50).padRight(20);
-
-        TextButton backButton = new TextButton("Back", skin);
-        table.add(backButton).width(200).height(50).padLeft(20);
-        table.row();
-
-        // Add status label
-        statusLabel = new Label("", skin);
-        table.add(statusLabel).colspan(2).padTop(30);
-
-        // Configure button listeners
+        // Create the start game button but don't add it yet
+        // We'll add it conditionally in updateUI() if the player is the lobby owner
+        final TextButton startGameButton = new TextButton("Start Game", skin);
         startGameButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -219,6 +210,19 @@ public class LobbyState extends State {
             }
         });
 
+        // Store the button as a class variable so we can manage it later
+        this.startGameButton = startGameButton;
+
+        // Add back button
+        TextButton backButton = new TextButton("Back", skin);
+        table.add(backButton).width(200).height(50);
+        table.row();
+
+        // Add status label
+        statusLabel = new Label("", skin);
+        table.add(statusLabel).padTop(30);
+
+        // Configure button listeners
         backButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
@@ -233,18 +237,41 @@ public class LobbyState extends State {
         }
 
         if (playerName != null) {
-            // Update the player name label (index 3 in the table)
+            // Update the player name label (now a combined "You: [name]" label)
             Table table = (Table) stage.getActors().first();
             if (table.getChildren().size > 3) {
                 Actor playerNameActor = table.getChildren().get(3);
                 if (playerNameActor instanceof Label) {
-                    ((Label) playerNameActor).setText(playerName);
+                    ((Label) playerNameActor).setText("You: " + playerName);
                 }
             }
         }
 
         // Load players in the lobby
         refreshPlayersList();
+
+        // Check if this player is the lobby owner
+        if (lobbyId != null && playerId != null && !playerId.equals("Not needed")) {
+            try {
+                boolean isOwner = lobbyPlayerApi.isLobbyOwner(playerId, lobbyId);
+
+                // Only add or remove the start button if the owner status changed
+                if (isOwner != isLobbyOwner) {
+                    isLobbyOwner = isOwner;
+
+                    if (isLobbyOwner) {
+                        // Add the start game button if this player is the lobby owner
+                        table.row();
+                        table.add(startGameButton).width(200).height(50).padBottom(20);
+                    } else {
+                        // Remove the start game button if this player is not the lobby owner
+                        table.removeActor(startGameButton);
+                    }
+                }
+            } catch (Exception e) {
+                Gdx.app.error("LobbyState", "Error checking lobby owner", e);
+            }
+        }
     }
 
     private void refreshPlayersList() {

@@ -422,4 +422,29 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
             }
         }
     }
+
+    fun isLobbyOwner(playerId: String, lobbyId: String): Boolean {
+        return runBlocking {
+            try {
+                val lobbyResponse = serviceManager.db
+                    .from("Lobby")
+                    .select {
+                        filter {
+                            eq("id", lobbyId)
+                        }
+                    }
+
+                val lobbies = lobbyResponse.decodeList<Lobby>()
+                if (lobbies.isNotEmpty()) {
+                    val lobby = lobbies.first()
+                    lobby.lobby_owner == playerId
+                } else {
+                    false
+                }
+            } catch (e: Exception) {
+                println("Error checking if player is lobby owner: ${e.message}")
+                false
+            }
+        }
+    }
 }

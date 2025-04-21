@@ -210,6 +210,15 @@ public class LobbyPlayerApi {
         }
     }
 
+    public boolean isLobbyOwner(String playerId, String lobbyId) {
+        try {
+            return lobbyPlayerViews.isLobbyOwner(playerId, lobbyId);
+        } catch (Exception e) {
+            Gdx.app.error("LobbyPlayerApi", "Error checking if player is lobby owner", e);
+            return false;
+        }
+    }
+
     /**
      * Gets the most recent start game session message
      * @return The start game session status message
