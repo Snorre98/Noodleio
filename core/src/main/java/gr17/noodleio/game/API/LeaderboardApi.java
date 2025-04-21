@@ -18,12 +18,12 @@ public class LeaderboardApi {
 
     /**
      * Adds a given entry to the leaderboard
-     * @param playerName The player name
-     * @param score The score achieved
+     *
+     * @param playerName      The player name
+     * @param score           The score achieved
      * @param durationSeconds The time in seconds it took to achieve the score
-     * @return Status message
      */
-    public String addLeaderboardEntry(String playerName, int score, Double durationSeconds) {
+    public void addLeaderboardEntry(String playerName, int score, Double durationSeconds) {
         try {
             // Add the entry
             LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntry(playerName, score, durationSeconds, null);
@@ -35,22 +35,20 @@ public class LeaderboardApi {
             } else {
                 addEntryMessage = "Failed to add new leaderboard entry";
             }
-            return addEntryMessage;
         } catch (Exception e) {
             addEntryMessage = "Error adding leaderboard entry: " + e.getMessage();
             e.printStackTrace();
-            return addEntryMessage;
         }
     }
 
     /**
      * Adds a leaderboard entry from a completed game session
-     * @param playerName The player name
-     * @param score The final score
+     *
+     * @param playerName  The player name
+     * @param score       The final score
      * @param gameSession The completed game session with timing information
-     * @return Status message
      */
-    public String addLeaderboardEntryFromSession(String playerName, int score, GameSession gameSession) {
+    public void addLeaderboardEntryFromSession(String playerName, int score, GameSession gameSession) {
         try {
             LeaderboardEntry newEntry = leaderboardView.addLeaderboardEntryFromSession(playerName, score, gameSession);
 
@@ -63,11 +61,9 @@ public class LeaderboardApi {
             } else {
                 addEntryMessage = "Failed to add new leaderboard entry from session";
             }
-            return addEntryMessage;
         } catch (Exception e) {
             addEntryMessage = "Error adding leaderboard entry from session: " + e.getMessage();
             e.printStackTrace();
-            return addEntryMessage;
         }
     }
 
