@@ -142,38 +142,7 @@ public class RealtimeGameStateApi {
      * @return Map of player IDs to player states
      */
     public Map<String, PlayerGameState> getPlayerStates() {
+        // TODO, use
         return gameStateService.getPlayerStates();
-    }
-
-    /**
-     * Get the current game session
-     * @return Current game session or null if not connected
-     */
-    public GameSession getCurrentSession() {
-        return gameStateService.getCurrentSession();
-    }
-
-    /**
-     * Get current connection status
-     * @return Status message
-     */
-    public String getConnectionStatus() {
-        return gameStateService.getConnectionStatus();
-    }
-
-    /**
-     * Get the most recent status message
-     * @return Status message
-     */
-    public String getStatusMessage() {
-        return statusMessage;
-    }
-
-    /**
-     * Get the underlying RealtimeGameStateService
-     * @return RealtimeGameStateService instance
-     */
-    public RealtimeGameStateService getGameStateService() {
-        return gameStateService;
     }
 }
