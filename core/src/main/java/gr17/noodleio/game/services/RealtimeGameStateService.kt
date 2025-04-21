@@ -3,6 +3,8 @@ package gr17.noodleio.game.services
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.PlayerGameState
+import gr17.noodleio.game.services.logging.ServiceLogger
+import gr17.noodleio.game.services.logging.ServiceLoggerFactory
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
 import io.github.jan.supabase.realtime.RealtimeChannel
@@ -20,30 +22,19 @@ import kotlin.coroutines.CoroutineContext
 /**
  * Service for receiving real-time game state updates
  * Handles synchronization of player positions and game state
- * This is a one-way service - client only receives updates from server
  */
 class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : CoroutineScope {
 
-    private fun extractNumberValue(value: Any?): Number {
-        return when (value) {
-            is Number -> value
-            else -> {
-                try {
-                    // Try to convert the value to a string and then to a double
-                    value.toString().toDoubleOrNull() ?: 0.0
-                } catch (e: Exception) {
-                    0.0 // Default value if parsing fails
-                }
-            }
-        }
+    private val logger: ServiceLogger = ServiceLoggerFactory.getLogger()
+    private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
+
+    companion object {
+        private const val TAG = "RealtimeGameStateService"
     }
 
     // Coroutine context for async operations
     override val coroutineContext: CoroutineContext
         get() = Dispatchers.IO + SupervisorJob()
-
-    // Create service manager with our config
-    private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
 
     // Realtime channels
     private var playerStateChannel: RealtimeChannel? = null
@@ -75,6 +66,7 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
     }
 
     fun removeListener(listener: GameStateListener) {
+        //TODO: remove or use
         listeners.remove(listener)
     }
 
@@ -108,12 +100,11 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
                     loadInitialGameState()
 
                     isConnected = true
-                    println("Connected to game session: $sessionId")
+                    logger.info(TAG, "Connected to game session: $sessionId")
                 } catch (e: Exception) {
                     lastError = e.message
                     isConnected = false
-                    println("Error subscribing to channels: ${e.message}")
-                    e.printStackTrace()
+                    logger.error(TAG, "Error subscribing to channels", e)
                 }
             }
 
@@ -121,6 +112,7 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
         } catch (e: Exception) {
             lastError = e.message
             isConnected = false
+            logger.error(TAG, "Failed to connect", e)
             "Failed to connect: ${e.message}"
         }
     }
@@ -159,13 +151,12 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
                 playerStates[state.player_id] = state
                 // Notify listeners
                 listeners.forEach { it.onPlayerStateChanged(state) }
-                println("Initial player state: player_id=${state.player_id}, x=${state.x_pos}, y=${state.y_pos}")
+                logger.debug(TAG, "Initial player state: player_id=${state.player_id}, x=${state.x_pos}, y=${state.y_pos}")
             }
 
-            println("Initial game state loaded")
+            logger.info(TAG, "Initial game state loaded")
         } catch (e: Exception) {
-            println("Error loading initial game state: ${e.message}")
-            e.printStackTrace()
+            logger.error(TAG, "Error loading initial game state", e)
         }
     }
 
@@ -175,7 +166,6 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
     private fun setupPlayerStateListener() {
         playerStateChannel?.let { channel ->
             try {
-                // Listen for all PostgresAction types on PlayerGameState table
                 val playerChanges = channel.postgresChangeFlow<PostgresAction>(
                     schema = "public"
                 ) {
@@ -197,75 +187,56 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
                                     score = extractNumberValue(record["score"]).toInt()
                                 )
 
-                                // Update local state
                                 playerStates[playerState.player_id] = playerState
-
-                                // Notify listeners
                                 listeners.forEach { it.onPlayerStateChanged(playerState) }
 
-                                println("New player joined: ${playerState.player_id}, position: (${playerState.x_pos}, ${playerState.y_pos})")
+                                logger.debug(TAG, "New player joined: ${playerState.player_id}, position: (${playerState.x_pos}, ${playerState.y_pos})")
                             }
 
                             is PostgresAction.Update -> {
                                 val record = action.record
-
-                                // Extract player_id from record
                                 val playerId = record["player_id"].toString()
-
-                                // Extract x and y positions, using correct type conversion
-                                val xPos = extractNumberValue(record["x_pos"]).toFloat()
-                                val yPos = extractNumberValue(record["y_pos"]).toFloat()
-                                val score = extractNumberValue(record["score"]).toInt()
+                                val prevState = playerStates[playerId]
 
                                 val playerState = PlayerGameState(
                                     id = record["id"].toString(),
                                     session_id = record["session_id"].toString(),
                                     player_id = playerId,
-                                    x_pos = xPos,
-                                    y_pos = yPos,
-                                    score = score
+                                    x_pos = extractNumberValue(record["x_pos"]).toFloat(),
+                                    y_pos = extractNumberValue(record["y_pos"]).toFloat(),
+                                    score = extractNumberValue(record["score"]).toInt()
                                 )
 
-                                // Get previous state for logging
-                                val prevState = playerStates[playerId]
-
-                                // Update local state
                                 playerStates[playerId] = playerState
-
-                                // Notify listeners
                                 listeners.forEach { it.onPlayerStateChanged(playerState) }
 
-                                // Log the update with previous and new position
-                                if (prevState != null) {
-                                    println("Player state updated: $playerId, position: (${prevState.x_pos}, ${prevState.y_pos}) -> (${playerState.x_pos}, ${playerState.y_pos})")
-                                } else {
-                                    println("Player state updated: $playerId, position: (${playerState.x_pos}, ${playerState.y_pos})")
+                                if (logger.isDebugEnabled()) {
+                                    if (prevState != null) {
+                                        logger.debug(TAG, "Player state updated: $playerId, position: (${prevState.x_pos}, ${prevState.y_pos}) -> (${playerState.x_pos}, ${playerState.y_pos})")
+                                    } else {
+                                        logger.debug(TAG, "Player state updated: $playerId, position: (${playerState.x_pos}, ${playerState.y_pos})")
+                                    }
                                 }
                             }
 
                             is PostgresAction.Delete -> {
                                 val oldRecord = action.oldRecord
                                 val playerId = oldRecord["player_id"].toString()
-
-                                // Remove from local state
                                 playerStates.remove(playerId)
-
-                                println("Player left: $playerId")
+                                logger.debug(TAG, "Player left: $playerId")
                             }
                             else -> {
-                                println("Unhandled action type: ${action::class.simpleName}")
+                                logger.debug(TAG, "Unhandled action type: ${action::class.simpleName}")
                             }
                         }
                     } catch (e: Exception) {
-                        println("Error processing player state change: ${e.message}")
-                        e.printStackTrace()
+                        logger.error(TAG, "Error processing player state change", e)
                     }
                 }.launchIn(this)
 
-                println("Successfully set up player state listener")
+                logger.debug(TAG, "Successfully set up player state listener")
             } catch (e: Exception) {
-                println("Error setting up player state listener: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error setting up player state listener", e)
             }
         }
     }
@@ -290,9 +261,8 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
 
                         // Check if game has ended
                         if (endedAt != null) {
-                            // Game over notification
                             listeners.forEach { it.onGameOver() }
-                            println("Game over!")
+                            logger.info(TAG, "Game over!")
                         }
 
                         // Update session details
@@ -307,21 +277,17 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
                         )
 
                         currentSession = gameSession
-
-                        // Notify listeners
                         listeners.forEach { it.onGameSessionChanged(gameSession) }
 
-                        println("Game session updated")
+                        logger.debug(TAG, "Game session updated")
                     } catch (e: Exception) {
-                        println("Error processing game session update: ${e.message}")
-                        e.printStackTrace()
+                        logger.error(TAG, "Error processing game session update", e)
                     }
                 }.launchIn(this)
 
-                println("Successfully set up game session listener")
+                logger.debug(TAG, "Successfully set up game session listener")
             } catch (e: Exception) {
-                println("Error setting up game session listener: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error setting up game session listener", e)
             }
         }
     }
@@ -331,7 +297,6 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
      */
     fun disconnect(): String {
         return try {
-            // Launch coroutine to unsubscribe from channels
             launch {
                 playerStateChannel?.unsubscribe()
                 gameSessionChannel?.unsubscribe()
@@ -345,10 +310,28 @@ class RealtimeGameStateService(environmentConfig: EnvironmentConfig) : Coroutine
             playerStates.clear()
             currentSession = null
 
+            logger.info(TAG, "Disconnected from game session")
             "Disconnected from game session"
         } catch (e: Exception) {
             lastError = e.message
+            logger.error(TAG, "Failed to disconnect", e)
             "Failed to disconnect: ${e.message}"
+        }
+    }
+
+    /**
+     * Extract numeric value from various types
+     */
+    private fun extractNumberValue(value: Any?): Number {
+        return when (value) {
+            is Number -> value
+            else -> {
+                try {
+                    value.toString().toDoubleOrNull() ?: 0.0
+                } catch (e: Exception) {
+                    0.0
+                }
+            }
         }
     }
 

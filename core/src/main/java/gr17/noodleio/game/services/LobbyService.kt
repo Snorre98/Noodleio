@@ -3,6 +3,8 @@ package gr17.noodleio.game.services
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
+import gr17.noodleio.game.services.logging.ServiceLogger
+import gr17.noodleio.game.services.logging.ServiceLoggerFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
@@ -12,14 +14,17 @@ import java.time.ZonedDateTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Service for managing a lobby.
- * Enables a player to create a lobby and start a game.
- * When a player creates a lobby it is also added to LobbyPlayer
- * */
+ * Service for managing lobby operations
+ * Enables a player to create a lobby and start a game
+ */
 class LobbyService(environmentConfig: EnvironmentConfig) {
 
-    // Create our service manager with the environment config
+    private val logger: ServiceLogger = ServiceLoggerFactory.getLogger()
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
+
+    companion object {
+        private const val TAG = "LobbyService"
+    }
 
     // Data class for the response from create_lobby_with_owner RPC function
     @Serializable
@@ -40,7 +45,8 @@ class LobbyService(environmentConfig: EnvironmentConfig) {
     fun createLobbyWithOwner(playerName: String, maxPlayers: Int = 2): Pair<Lobby, LobbyPlayer>? {
         return runBlocking {
             try {
-                // Call the database function using RPC
+                logger.debug(TAG, "Creating lobby with owner: $playerName, max players: $maxPlayers")
+
                 val params = buildJsonObject {
                     put("p_player_name", playerName)
                     put("p_max_players", maxPlayers)
@@ -50,7 +56,7 @@ class LobbyService(environmentConfig: EnvironmentConfig) {
                 val results = response.decodeList<CreateLobbyWithOwnerResponse>()
 
                 if (results.isEmpty() || !results.first().success) {
-                    println("Failed to create lobby with owner. Player name might already exist.")
+                    logger.info(TAG, "Failed to create lobby with owner. Player name might already exist.")
                     return@runBlocking null
                 }
 
@@ -71,12 +77,11 @@ class LobbyService(environmentConfig: EnvironmentConfig) {
                     joined_at = kotlinx.datetime.Clock.System.now()
                 )
 
-                println("Successfully created lobby with ID ${lobby.id} and player ${player.player_name}")
+                logger.info(TAG, "Successfully created lobby ${lobby.id} with player ${player.player_name}")
                 Pair(lobby, player)
 
             } catch (e: Exception) {
-                println("Error creating lobby with owner: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Failed to create lobby with owner", e)
                 null
             }
         }

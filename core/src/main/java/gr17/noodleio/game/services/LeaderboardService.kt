@@ -3,16 +3,24 @@ package gr17.noodleio.game.services
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.LeaderboardEntry
 import gr17.noodleio.game.models.GameSession
+import gr17.noodleio.game.services.logging.ServiceLogger
+import gr17.noodleio.game.services.logging.ServiceLoggerFactory
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
-
+/**
+ * Service for managing leaderboard operations
+ */
 class LeaderboardService(environmentConfig: EnvironmentConfig) {
 
-    // Create our own service manager with custom serializer
+    private val logger: ServiceLogger = ServiceLoggerFactory.getLogger()
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
+
+    companion object {
+        private const val TAG = "LeaderboardService"
+    }
 
     /**
      * Gets the top N entries from the leaderboard
@@ -21,7 +29,8 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
     fun getTopLeaderboard(limit: Long): List<LeaderboardEntry> {
         return runBlocking {
             try {
-                // Query the leaderboard table with a limit
+                logger.debug(TAG, "Fetching top $limit leaderboard entries")
+
                 val result = serviceManager.db
                     .from("Leaderboard")
                     .select(){
@@ -30,11 +39,10 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
                     }
                     .decodeList<LeaderboardEntry>()
 
-                println("Successfully fetched top $limit leaderboard entries")
+                logger.info(TAG, "Successfully fetched ${result.size} leaderboard entries")
                 result
             } catch (e: Exception) {
-                println("Error fetching top leaderboard: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Failed to fetch top leaderboard", e)
                 emptyList()
             }
         }
@@ -45,6 +53,7 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
      * @param playerName The name of the player
      * @param score The player's score
      * @param durationSeconds The time in seconds it took to achieve the score
+     * @param level The game level
      * @return The created LeaderboardEntry or null if there was an error
      */
     fun addLeaderboardEntry(
@@ -55,7 +64,8 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
     ): LeaderboardEntry? {
         return runBlocking {
             try {
-                // Use JsonObject to ensure proper serialization
+                logger.debug(TAG, "Adding leaderboard entry for $playerName with score $score")
+
                 val jsonData = buildJsonObject {
                     put("player_name", playerName)
                     put("score", score)
@@ -67,17 +77,17 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
                     }
                 }
 
-                // Insert the new entry and handle empty response case
                 val response = serviceManager.db
                     .from("Leaderboard")
                     .insert(jsonData){
                         select()
                     }
 
-                // The insert might return an empty string if the DB is not configured to return the inserted row
+                // Handle empty response case
                 val responseText = response.toString()
                 if (responseText.isBlank() || responseText == "[]") {
-                    // Try to fetch the recently added entry
+                    logger.debug(TAG, "Insert returned empty response, attempting to fetch recently added entry")
+
                     val entries = serviceManager.db
                         .from("Leaderboard")
                         .select {
@@ -91,12 +101,11 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
                         .decodeList<LeaderboardEntry>()
 
                     if (entries.isNotEmpty()) {
-                        println("Successfully added new leaderboard entry for $playerName with score $score and duration ${durationSeconds ?: "unknown"} seconds")
+                        logger.info(TAG, "Successfully added leaderboard entry for $playerName")
                         return@runBlocking entries.first()
                     }
 
-                    println("Entry was added but could not be retrieved")
-                    // Create a placeholder object
+                    logger.info(TAG, "Entry was added but could not be retrieved, creating placeholder")
                     return@runBlocking LeaderboardEntry(
                         id = "unknown",
                         player_name = playerName,
@@ -106,11 +115,11 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
                 }
 
                 val result = response.decodeSingle<LeaderboardEntry>()
-                println("Successfully added new leaderboard entry for $playerName with score $score and duration ${durationSeconds ?: "unknown"} seconds")
+                logger.info(TAG, "Successfully added leaderboard entry for $playerName")
                 result
+
             } catch (e: Exception) {
-                println("Error adding leaderboard entry: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Failed to add leaderboard entry", e)
 
                 // Create a placeholder entry when we can't get the real one
                 LeaderboardEntry(
@@ -126,7 +135,7 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
     /**
      * Calculate duration in seconds between two timestamps from a GameSession
      * @param gameSession The completed game session with start and end times
-     * @return Duration in seconds as Int, or null if ended_at is not set
+     * @return Duration in seconds as Double, or null if ended_at is not set
      */
     private fun calculateGameDuration(gameSession: GameSession): Double? {
         val startTime = gameSession.started_at
@@ -149,6 +158,7 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
         score: Int,
         gameSession: GameSession
     ): LeaderboardEntry? {
+        logger.debug(TAG, "Adding leaderboard entry from game session")
         val durationSeconds = calculateGameDuration(gameSession)
         return addLeaderboardEntry(playerName, score, durationSeconds)
     }
