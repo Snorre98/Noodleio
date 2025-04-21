@@ -131,20 +131,4 @@ public class PlayerGameStateApi {
             return errorMsg;
         }
     }
-
-    /**
-     * Gets the most recent move player message
-     * @return The move player status message
-     */
-    public String getMovePlayerMessage() {
-        return movePlayerMessage;
-    }
-
-    /**
-     * Gets the underlying RealtimePlayerGameStateViews
-     * @return The RealtimePlayerGameStateViews instance
-     */
-    public PlayerGameStateViews getPlayerGameStateViews() {
-        return playerGameStateViews;
-    }
 }
