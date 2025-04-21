@@ -126,8 +126,13 @@ public class EndGameState extends State {
             if (Gdx.files.internal("default-round.png").exists()) {
                 skin.add("default-round", new Texture(Gdx.files.internal("default-round.png")));
             } else {
-                // Use white pixel texture as fallback
-                skin.add("default-round", skin.get("white", Texture.class));
+                // Create a black texture for buttons instead of using white
+                Pixmap blackPix = new Pixmap(1, 1, Pixmap.Format.RGBA8888);
+                blackPix.setColor(Color.BLACK);
+                blackPix.fill();
+                Texture blackTex = new Texture(blackPix);
+                skin.add("default-round", blackTex);
+                blackPix.dispose();
             }
 
             if (Gdx.files.internal("default-round-down.png").exists()) {
