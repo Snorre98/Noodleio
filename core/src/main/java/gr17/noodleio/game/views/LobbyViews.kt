@@ -16,7 +16,7 @@ import java.time.format.DateTimeFormatter
  * Enables a player to create a lobby and start a game.
  * When a player creates a lobby it is also added to LobbyPlayer
  * */
-class LobbyViews(private val environmentConfig: EnvironmentConfig) {
+class LobbyViews(environmentConfig: EnvironmentConfig) {
 
     // Create our service manager with the environment config
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
@@ -30,52 +30,6 @@ class LobbyViews(private val environmentConfig: EnvironmentConfig) {
         @SerialName("max_players") val maxPlayers: Int,
         @SerialName("success") val success: Boolean
     )
-
-    /**
-     * Creates a new lobby
-     * @param maxPlayers Maximum number of players allowed in the lobby
-     * @return The created Lobby or null if there was an error
-     */
-    fun createLobby(maxPlayers: Int = 4): Lobby? {
-        return runBlocking {
-            try {
-                // Current timestamp formatted as ISO string
-                val createdAt = ZonedDateTime.now().format(DateTimeFormatter.ISO_INSTANT)
-
-                // Use JsonObject to ensure proper serialization
-                val jsonData = buildJsonObject {
-                    put("max_players", maxPlayers)
-                }
-
-                // Insert the new lobby
-                val response = serviceManager.db
-                    .from("Lobby")
-                    .insert(jsonData)
-
-                // The insert might return an empty string if the DB is not configured to return the inserted row
-                val responseText = response.toString()
-                if (responseText.isBlank() || responseText == "[]") {
-                    // Handle empty response - this might happen depending on DB configuration
-                    println("Lobby was created but no data was returned")
-
-                    // Create a placeholder lobby object
-                    return@runBlocking Lobby(
-                        id = "unknown",
-                        max_players = maxPlayers,
-                        created_at = createdAt
-                    )
-                }
-
-                val result = response.decodeSingle<Lobby>()
-                println("Successfully created new lobby with ID ${result.id}")
-                result
-            } catch (e: Exception) {
-                println("Error creating lobby: ${e.message}")
-                e.printStackTrace()
-                null
-            }
-        }
-    }
 
     /**
      * Creates a new lobby with a player as the owner
@@ -127,45 +81,4 @@ class LobbyViews(private val environmentConfig: EnvironmentConfig) {
             }
         }
     }
-
-    /**
-     * Gets a lobby by its ID
-     * @param lobbyId The ID of the lobby to retrieve
-     * @return The Lobby object or null if not found
-     */
-    fun getLobbyById(lobbyId: String): Lobby? {
-        return runBlocking {
-            try {
-                val response = serviceManager.db
-                    .from("Lobby")
-                    .select {
-                        filter {
-                            eq("id", lobbyId)
-                        }
-                    }
-
-                // Check if response is empty using toString or try-catch with decodeSingle
-                val responseText = response.toString()
-                if (responseText.isBlank() || responseText == "[]") {
-                    println("No lobby found with ID $lobbyId")
-                    return@runBlocking null
-                }
-
-                try {
-                    val result = response.decodeSingle<Lobby>()
-                    println("Successfully retrieved lobby with ID ${result.id}")
-                    result
-                } catch (e: Exception) {
-                    // If we can't decode a single result, there might be no matching data
-                    println("No valid lobby found with ID $lobbyId: ${e.message}")
-                    null
-                }
-            } catch (e: Exception) {
-                println("Error retrieving lobby: ${e.message}")
-                e.printStackTrace()
-                null
-            }
-        }
-    }
-
 }
