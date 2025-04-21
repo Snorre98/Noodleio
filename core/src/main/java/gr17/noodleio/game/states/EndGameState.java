@@ -83,7 +83,6 @@ public class EndGameState extends State {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
                 gsm.set(new MenuState(gsm));
-                dispose();
             }
         });
     }
