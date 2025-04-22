@@ -3,8 +3,8 @@ package gr17.noodleio.game.API;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
-import gr17.noodleio.game.views.RealtimeGameStateService;
-import gr17.noodleio.game.views.RealtimeGameStateService.GameStateListener;
+import gr17.noodleio.game.services.RealtimeGameStateService;
+import gr17.noodleio.game.services.RealtimeGameStateService.GameStateListener;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,6 +17,7 @@ import com.badlogic.gdx.Gdx;
  * This is a one-way service - client only receives updates
  */
 public class RealtimeGameStateApi {
+    private volatile boolean isShuttingDown = false;
     private final RealtimeGameStateService gameStateService;
     private String statusMessage = "Initializing...";
 
@@ -39,6 +40,8 @@ public class RealtimeGameStateApi {
         this.gameStateService.addListener(new GameStateListener() {
             @Override
             public void onPlayerStateChanged(PlayerGameState playerState) {
+                // skip if shutting down
+                if (isShuttingDown) return;
                 // Notify all registered callbacks
                 // Use Gdx.app.postRunnable to ensure UI thread safety
                 final PlayerGameState finalPlayerState = playerState;
@@ -54,6 +57,8 @@ public class RealtimeGameStateApi {
 
             @Override
             public void onGameSessionChanged(GameSession gameSession) {
+                // Skip if shutting down
+                if (isShuttingDown) return;
                 // Notify all registered callbacks
                 final GameSession finalGameSession = gameSession;
                 Gdx.app.postRunnable(new Runnable() {
@@ -68,6 +73,8 @@ public class RealtimeGameStateApi {
 
             @Override
             public void onGameOver() {
+                // Skip if shutting down
+                if (isShuttingDown) return;
                 // Notify all registered callbacks
                 Gdx.app.postRunnable(new Runnable() {
                     @Override
@@ -120,6 +127,7 @@ public class RealtimeGameStateApi {
      */
     public String disconnect() {
         try {
+            isShuttingDown = true;
             statusMessage = gameStateService.disconnect();
             return statusMessage;
         } catch (Exception e) {
@@ -134,38 +142,7 @@ public class RealtimeGameStateApi {
      * @return Map of player IDs to player states
      */
     public Map<String, PlayerGameState> getPlayerStates() {
+        // TODO, use
         return gameStateService.getPlayerStates();
-    }
-
-    /**
-     * Get the current game session
-     * @return Current game session or null if not connected
-     */
-    public GameSession getCurrentSession() {
-        return gameStateService.getCurrentSession();
-    }
-
-    /**
-     * Get current connection status
-     * @return Status message
-     */
-    public String getConnectionStatus() {
-        return gameStateService.getConnectionStatus();
-    }
-
-    /**
-     * Get the most recent status message
-     * @return Status message
-     */
-    public String getStatusMessage() {
-        return statusMessage;
-    }
-
-    /**
-     * Get the underlying RealtimeGameStateService
-     * @return RealtimeGameStateService instance
-     */
-    public RealtimeGameStateService getGameStateService() {
-        return gameStateService;
     }
 }

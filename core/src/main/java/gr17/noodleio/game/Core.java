@@ -1,30 +1,18 @@
 package gr17.noodleio.game;
 
-import com.badlogic.gdx.Application;
 import com.badlogic.gdx.ApplicationAdapter;
 import com.badlogic.gdx.Gdx;
-import com.badlogic.gdx.Graphics.DisplayMode;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.utils.viewport.Viewport;
-import com.badlogic.gdx.utils.ScreenUtils;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.states.GameStateManager;
 import gr17.noodleio.game.states.MenuState;
 
 public class Core extends ApplicationAdapter {
-
-    private final EnvironmentConfig environmentConfig;
-    
-    // Performance monitoring
-    private float fpsUpdateTimer = 0;
-    private static final float FPS_UPDATE_INTERVAL = 1.0f;
-    private int frameCount = 0;
-    private float currentFps = 0;
-    private boolean showFps = true;
 
     /**
      * Default constructor - uses null environment config.
@@ -38,7 +26,6 @@ public class Core extends ApplicationAdapter {
      * @param environmentConfig The application's environment configuration
      */
     public Core(EnvironmentConfig environmentConfig) {
-        this.environmentConfig = environmentConfig;
     }
 
     private GameStateManager gsm;
@@ -57,20 +44,20 @@ public class Core extends ApplicationAdapter {
     public void create() {
         // Set target framerate for better performance
         Gdx.graphics.setForegroundFPS(60);
-        
+
         // Enable VSync if supported by the hardware
         Gdx.graphics.setVSync(true);
-        
+
         // Existing code continues...
         camera = new OrthographicCamera();
         viewport = new DynamicViewport(MIN_WORLD_WIDTH, MIN_WORLD_HEIGHT,
             MAX_WORLD_WIDTH, MAX_WORLD_HEIGHT, camera);
         viewport.apply(true);
-        
+
         batch = new SpriteBatch();
         font = new BitmapFont();
         font.getData().setScale(1.5f);
-        
+
         // Initialize game state manager and set initial state
         gsm = GameStateManager.getInstance();
         gsm.push(new MenuState(gsm));
