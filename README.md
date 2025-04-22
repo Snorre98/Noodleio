@@ -19,7 +19,7 @@ The file delivered is build to work on minimum Android 5 - Lollipop (SDK 21) and
 The overall project structure is the following : 
 - **States** folder contains the different logic for each state of the game, such as the menu, the lobby, the game itself and more…
 - **Entities** folder contains the classes of all the entites in our game, which is the snake, it's body and the food.
-- **Services** folder which contains some functions in which code is communicating with FireBase to retrieve / send data.
+- **Services** folder which contains some functions in which code is communicating with Supabase to retrieve / send data.
 - **API** folder which contains functions that are calling the services ones. These API functions are returning values that are use in the files of the **States** folder.
 
 # Developed By
