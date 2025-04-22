@@ -9,6 +9,7 @@ There is an APK file in this repository that you need in order to run your game 
 The file delivered is build to work on minimum Android 5 - Lollipop (SDK 21) and has the target SDK platform version 34, which is the SDK for Android 14 - UpsideDownCake.
 
 ## Steps :
+- Get the APK file by cloning this repo, the file is in [root of Noodleio](https://github.com/Snorre98/Noodleio/blob/main/android-debug.apk).
 - To run the .APK file on an Android device one has to navigate to 'Apps' \> 'Settings' \> 'Security', enable 'Unknown Sources' for your file explorer app. This enables the device to install standalone APKs.
 - Connect your device to the computer which has the APK file using USB. Select the Android device as a "Media device" on the computer.
 - Navigate to the APK file on the PC and copy the APK file into a folder in your Android device.
