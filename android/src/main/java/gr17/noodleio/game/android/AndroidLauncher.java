@@ -12,11 +12,20 @@ public class AndroidLauncher extends AndroidApplication {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        // Set up configuration from BuildConfig
+        
+        // Setup configuration from BuildConfig
         Config.setupFromBuildConfig(BuildConfig.SUPABASE_URL, BuildConfig.SUPABASE_ANON_KEY);
 
-        AndroidApplicationConfiguration configuration = new AndroidApplicationConfiguration();
-        configuration.useImmersiveMode = true;
-        initialize(new Core(), configuration);
+        AndroidApplicationConfiguration config = new AndroidApplicationConfiguration();
+        config.useImmersiveMode = true;
+        
+        // Improved settings for mobile performance and battery life
+        config.useAccelerometer = false;
+        config.useCompass = false;
+        
+        // Use GPU for rendering
+        config.useGL30 = false; // Set to true only if you need OpenGL ES 3.0
+        
+        initialize(new Core(), config);
     }
 }

@@ -21,27 +21,36 @@ public class DynamicViewport extends FitViewport {
 
     @Override
     public void update(int screenWidth, int screenHeight, boolean centerCamera) {
-        // Calculate new world size based on screen size
+        // Calculate screen aspect ratio
         float aspectRatio = (float)screenWidth / screenHeight;
-        float width = minWorldWidth;
-        float height = minWorldHeight;
-
-        if (aspectRatio > maxWorldWidth / maxWorldHeight) {
-            // Wider than maximum
-            width = maxWorldWidth;
-            height = width / aspectRatio;
-        } else if (aspectRatio < minWorldWidth / minWorldHeight) {
-            // Taller than minimum
-            height = maxWorldHeight;
-            width = height * aspectRatio;
+        
+        // Calculate world dimensions that maintain this aspect ratio
+        float worldWidth, worldHeight;
+        
+        if (aspectRatio > minWorldWidth / minWorldHeight) {
+            // Screen is wider than minimum aspect ratio - use height as reference
+            worldHeight = minWorldHeight;
+            worldWidth = worldHeight * aspectRatio;
+            
+            // Cap to maximum width if needed
+            if (worldWidth > maxWorldWidth) {
+                worldWidth = maxWorldWidth;
+                worldHeight = worldWidth / aspectRatio;
+            }
         } else {
-            // Within bounds, scale to fit
-            width = minWorldHeight * aspectRatio;
-            height = minWorldHeight;
+            // Screen is taller than minimum aspect ratio - use width as reference
+            worldWidth = minWorldWidth;
+            worldHeight = worldWidth / aspectRatio;
+            
+            // Cap to maximum height if needed
+            if (worldHeight > maxWorldHeight) {
+                worldHeight = maxWorldHeight;
+                worldWidth = worldHeight * aspectRatio;
+            }
         }
-
+        
         // Update viewport with new dimensions
-        setWorldSize(width, height);
+        setWorldSize(worldWidth, worldHeight);
         super.update(screenWidth, screenHeight, centerCamera);
     }
 }
