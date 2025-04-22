@@ -15,6 +15,7 @@ public class LobbyState extends BaseUIState {
     private String lobbyId;
     private String playerId;
     private String playerName;
+    private String shortLobbyCode; // Added for display purposes
     private Label lobbyCodeLabel;
     private Label playerNameLabel;
     private Label playersLabel;
@@ -36,8 +37,10 @@ public class LobbyState extends BaseUIState {
     protected void setupUI() {
         uiFactory.addTitle(table, "LOBBY");
 
-        uiFactory.addLabel(table, "Lobby Code:");
+        // Enhanced UI with lobby code explanation
+        uiFactory.addLabel(table, "Share this code with friends:");
         lobbyCodeLabel = uiFactory.addLabel(table, "-----");
+        uiFactory.addLabel(table, "(Only first 5 characters needed to join)");
 
         playerNameLabel = uiFactory.addLabel(table, "You: -----");
         playersLabel = uiFactory.addLabel(table, "Loading players...");
@@ -57,19 +60,27 @@ public class LobbyState extends BaseUIState {
         lobbyPlayerApi = new LobbyPlayerApi(config);
     }
 
-    public void setLobbyData(String lobbyId, String playerId, String playerName) {
+    // Updated to include short code
+    public void setLobbyData(String lobbyId, String playerId, String playerName, String shortCode) {
         this.lobbyId = lobbyId;
         this.playerId = playerId;
         this.playerName = playerName;
+        this.shortLobbyCode = shortCode != null ? shortCode : 
+                             (lobbyId != null ? lobbyId.substring(0, Math.min(5, lobbyId.length())) : "-----");
 
         // Delay UI update until after setupUI() has run
         Gdx.app.postRunnable(this::updateUI);
     }
 
+    // Backward compatibility method
+    public void setLobbyData(String lobbyId, String playerId, String playerName) {
+        setLobbyData(lobbyId, playerId, playerName, null);
+    }
 
     private void updateUI() {
-        if (lobbyCodeLabel != null && lobbyId != null) {
-            lobbyCodeLabel.setText(lobbyId);
+        if (lobbyCodeLabel != null) {
+            // Display the short code with asterisks for the rest to indicate it's a prefix
+            lobbyCodeLabel.setText(shortLobbyCode + "****-****-****");
         }
 
         if (playerNameLabel != null && playerName != null) {

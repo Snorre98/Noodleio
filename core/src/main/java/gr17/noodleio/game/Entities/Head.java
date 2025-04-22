@@ -22,7 +22,7 @@ public class Head extends BodyPart{
         acc = new Vector2();
         maxAcc = 2;
         maxVel = 3;
-        collisionShape = new Circle(pos.x, pos.y, size * 2);
+        collisionShape = new Circle(pos.x, pos.y, size * 3);
         magnetFoodShape = new Circle(pos.x, pos.y, 120);
     }
 

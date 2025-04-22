@@ -1100,7 +1100,7 @@ private void renderGameElements() {
         }
 
         // Draw instructions
-        font.draw(sb, "Click and hold to move, ESC to exit", 20, 40);
+        font.draw(sb, "Press and hold to move", 20, 40);
 
         sb.end();
     }

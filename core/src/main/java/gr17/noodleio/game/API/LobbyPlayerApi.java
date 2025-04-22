@@ -1,12 +1,12 @@
 package gr17.noodleio.game.API;
 
+import java.util.List;
+
 import com.badlogic.gdx.Gdx;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
 import gr17.noodleio.game.services.LobbyPlayerService;
-
-import java.util.List;
 
 public class LobbyPlayerApi {
     private final LobbyPlayerService lobbyPlayerService;
@@ -17,8 +17,10 @@ public class LobbyPlayerApi {
 
     /**
      * Allows a player to join a lobby by its ID
+     * Now supports partial lobby IDs (first 5 characters) for easier joining
+     * 
      * @param playerName The name of the player who wants to join
-     * @param lobbyId The ID of the lobby to join
+     * @param lobbyId The ID of the lobby to join (full ID or just first 5 characters)
      * @return Status message indicating success or failure
      */
     public String joinLobby(String playerName, String lobbyId) {
@@ -44,7 +46,9 @@ public class LobbyPlayerApi {
 
     /**
      * Gets all players in a lobby
-     * @param lobbyId The ID of the lobby
+     * Now supports partial lobby IDs
+     * 
+     * @param lobbyId The ID of the lobby (full ID or just first 5 characters)
      * @return Status message with list of players
      */
     public String getPlayersInLobby(String lobbyId) {
@@ -100,7 +104,6 @@ public class LobbyPlayerApi {
         }
     }
 
-
     /**
      * Gets a player by their ID
      * @param playerId The ID of the player to retrieve
@@ -126,13 +129,13 @@ public class LobbyPlayerApi {
         }
     }
 
-
     /**
      * Starts a game session for a lobby
      * Only the lobby owner can start a game session
+     * Now supports partial lobby IDs
      *
      * @param playerId The ID of the player trying to start the game (must be lobby owner)
-     * @param lobbyId The ID of the lobby to create a game session for
+     * @param lobbyId The ID of the lobby to create a game session for (full ID or just first 5 characters)
      * @param winningScore Score required to win (default: 50)
      * @param mapLength Map length (default: 1080)
      * @param mapHeight Map height (default: 1080)
@@ -166,15 +169,23 @@ public class LobbyPlayerApi {
 
     /**
      * Starts a game session for a lobby with default settings
+     * Now supports partial lobby IDs
      *
      * @param playerId The ID of the player trying to start the game (must be lobby owner)
-     * @param lobbyId The ID of the lobby to create a game session for
+     * @param lobbyId The ID of the lobby to create a game session for (full ID or just first 5 characters)
      * @return Status message indicating success or failure
      */
     public String startGameSession(String playerId, String lobbyId) {
         return startGameSession(playerId, lobbyId, 10, 1080, 1080);
     }
 
+    /**
+     * Checks if there's an active game session for a lobby
+     * Now supports partial lobby IDs
+     * 
+     * @param lobbyId The ID of the lobby (full ID or just first 5 characters)
+     * @return Status message indicating if an active game session exists
+     */
     public String checkActiveGameSession(String lobbyId) {
         try {
             // Check if an active game session exists for this lobby
@@ -195,6 +206,14 @@ public class LobbyPlayerApi {
         }
     }
 
+    /**
+     * Checks if a player is the owner of a lobby
+     * Now supports partial lobby IDs
+     * 
+     * @param playerId The ID of the player
+     * @param lobbyId The ID of the lobby (full ID or just first 5 characters)
+     * @return True if the player is the lobby owner, false otherwise
+     */
     public boolean isLobbyOwner(String playerId, String lobbyId) {
         try {
             return lobbyPlayerService.isLobbyOwner(playerId, lobbyId);

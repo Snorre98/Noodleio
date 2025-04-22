@@ -74,8 +74,8 @@ public class MenuState extends BaseUIState {
     }
     
     private void setupRightColumn(Table rightColumn) {
-        // Create lobby code field in right column
-        lobbyCodeField = uiFactory.addTextField(rightColumn, "Enter lobby code...", 200, 40);
+        // Create lobby code field in right column - changed hint text to indicate only 5 chars needed
+        lobbyCodeField = uiFactory.addTextField(rightColumn, "Enter first 5 chars of lobby code...", 200, 40);
         lobbyCodeField.setTextFieldListener((textField, c) -> {
             if (c == '\n') {
                 Gdx.input.setOnscreenKeyboardVisible(false);
@@ -90,6 +90,8 @@ public class MenuState extends BaseUIState {
                 setStatus("Please enter a player name");
             } else if (code == null || code.trim().isEmpty()) {
                 setStatus("Please enter a lobby code");
+            } else if (code.length() < 5) {
+                setStatus("Please enter at least 5 characters of the lobby code");
             } else {
                 joinLobby(name, code);
             }
@@ -118,8 +120,12 @@ public class MenuState extends BaseUIState {
                 String[] parts = result.split("\\|");
                 lobbyId = parts[0].split(":")[1].trim();
                 playerId = parts[1].split(":")[1].trim();
+                
+                // Get short code (first 5 chars) for display
+                String shortCode = lobbyId.substring(0, Math.min(5, lobbyId.length()));
+                
                 LobbyState lobbyState = new LobbyState(gsm);
-                lobbyState.setLobbyData(lobbyId, playerId, playerName);
+                lobbyState.setLobbyData(lobbyId, playerId, playerName, shortCode);
                 gsm.set(lobbyState);
             } else {
                 setStatus("Failed to create lobby: " + result);
