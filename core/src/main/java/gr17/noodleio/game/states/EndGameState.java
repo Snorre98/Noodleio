@@ -25,7 +25,7 @@ import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.util.ResourceManager;
 
 public class EndGameState extends State {
-
+    private static final boolean DEBUG_LOGGING = true;
     private Stage stage;
     private Skin skin;
     private Table table;
@@ -36,9 +36,27 @@ public class EndGameState extends State {
 
     private LeaderboardApi leaderboardApi;
 
+    private void log(String message) {
+        if (DEBUG_LOGGING) {
+            Gdx.app.log("EndGameState", message);
+        }
+    }
+
+    private void logError(String message, Throwable e) {
+        if (DEBUG_LOGGING) {
+            Gdx.app.error("EndGameState", message, e);
+        }
+    }
+
+    private void logError(String message) {
+        if (DEBUG_LOGGING) {
+            Gdx.app.error("EndGameState", message);
+        }
+    }
+
     public EndGameState(GameStateManager gsm, Array<PlayerResult> results, String playerName, int placement, ResourceManager rm, GameSession gameSession) {
         super(gsm);
-        Gdx.app.log("EndGameState", "Initializing EndGameState");
+        log("Initializing EndGameState");
 
         this.results = results;
         this.playerName = playerName;
@@ -97,9 +115,9 @@ public class EndGameState extends State {
 
             // Initialize the leaderboard API
             leaderboardApi = new LeaderboardApi(environmentConfig);
-            Gdx.app.log("EndGameState", "LeaderboardApi initialized successfully");
+            log("LeaderboardApi initialized successfully");
         } catch (Exception e) {
-            Gdx.app.error("EndGameState", "Error initializing LeaderboardApi", e);
+            logError("Error in init API", e);
         }
     }
 
@@ -162,7 +180,7 @@ public class EndGameState extends State {
             skin.add("default", labelStyle);
 
         } catch (Exception e) {
-            Gdx.app.error("EndGameState", "Error loading skin resources", e);
+            logError("Error loading skin resources", e);
 
             // Create a minimal fallback skin
             skin = new Skin();
@@ -203,7 +221,7 @@ public class EndGameState extends State {
             table.add(titleLabel).padBottom(40);
             table.row();
         } catch (Exception e) {
-            Gdx.app.error("EndGameState", "Error creating title", e);
+            logError("Error creating title", e);
             // Add a simple title as fallback
             Label titleLabel = new Label("GAME OVER", new Label.LabelStyle(skin.getFont("default-font"), Color.WHITE));
             table.add(titleLabel).padBottom(40);
@@ -235,7 +253,7 @@ public class EndGameState extends State {
                     playerFont.setColor(Color.YELLOW);
                     resultStyle.font = playerFont;
                 } catch (Exception e) {
-                    Gdx.app.error("EndGameState", "Error creating custom font", e);
+                    logError("Error creating custom font", e);
                     // Just use the default font with a different color if there's an error
                     resultStyle.fontColor = Color.YELLOW;
                 }
@@ -266,7 +284,7 @@ public class EndGameState extends State {
     private void saveScoreToLeaderboard(String playerName, int score, GameSession gameSession) {
         try {
             if (leaderboardApi == null) {
-                Gdx.app.error("EndGameState", "Cannot save score: LeaderboardApi is null");
+                logError("Cannot save score: LeaderboardApi is null");
                 return;
             }
 
@@ -283,17 +301,17 @@ public class EndGameState extends State {
             try {
                 // Try to call the specific method if it exists
                 leaderboardApi.addLeaderboardEntryFromSession(playerName, score, gameSession);
-                Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName + " using session data");
+                log("Score saved to leaderboard");
             } catch (NoSuchMethodError e) {
                 // Fallback to standard method if the specialized one doesn't exist
-                Gdx.app.log("EndGameState", "addLeaderboardEntryFromSession not found, using standard method");
+                log("addLeaderboardEntryFromSession not found, using standard method");
 
                 // Call the three-argument version with duration
                 leaderboardApi.addLeaderboardEntry(playerName, score, durationSeconds);
-                Gdx.app.log("EndGameState", "Score saved to leaderboard for " + playerName);
+                log("Score saved to leaderboard for " + playerName);
             }
         } catch (Exception e) {
-            Gdx.app.error("EndGameState", "Error saving score to leaderboard", e);
+            logError("Error saving score to leaderboard", e);
         }
     }
 
