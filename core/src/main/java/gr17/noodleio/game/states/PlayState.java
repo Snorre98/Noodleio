@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -88,6 +89,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private Texture backgroundTexture;
     private int mapWidth, mapHeight;
     private SpriteBatch backgroundBatch;
+    private Rectangle exitButton;
 
     // Snake-related fields
     private Snake localSnake;
@@ -215,6 +217,7 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
     this.gameBatch = new SpriteBatch();
     this.foodBatch = new SpriteBatch();
     this.uiBatch = new SpriteBatch();
+    this.exitButton = new Rectangle(20, Gdx.graphics.getHeight() - 40, 100, 30);
 
     this.font.getRegion().getTexture().setFilter(
         Texture.TextureFilter.Linear,
@@ -448,6 +451,13 @@ private void renderGameElements() {
         // Handle exit with escape key
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             disconnectAndReturnToMenu();
+        }
+
+        if (Gdx.input.justTouched()) {
+            Vector2 touch = new Vector2(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY());
+            if (exitButton.contains(touch.x, touch.y)) {
+                disconnectAndReturnToMenu();
+            }
         }
     }
 
@@ -1075,23 +1085,23 @@ private void renderGameElements() {
         uiBatch.begin();
 
         font.setColor(Color.WHITE);
+        font.draw(uiBatch, "EXIT", exitButton.x + 20, exitButton.y + 20);
 
         Map<String, PlayerGameState> playerStates = players;
 
-        float y = Gdx.graphics.getHeight() - 50;
+        float y = Gdx.graphics.getHeight() - 90; // Lower starting position
         font.draw(uiBatch, "Players: " + playerStates.size(), 20, y);
 
         List<PlayerGameState> sortedPlayers = new ArrayList<>(playerStates.values());
         Collections.sort(sortedPlayers, (p1, p2) -> Integer.compare(p2.getScore(), p1.getScore()));
 
         int playerCount = 0;
-
         for (PlayerGameState player : sortedPlayers) {
             y -= 40;
             String pid = player.getPlayer_id().replace("\"", "");
             String isLocal = pid.equals(playerId) ? " (YOU)" : "";
 
-            font.draw(uiBatch, String.format("Player%s: %d%s",
+            font.draw(uiBatch, String.format("Player %s: %d%s",
                 pid.substring(0, Math.min(4, pid.length())),
                 player.getScore(), isLocal), 20, y);
 
