@@ -865,7 +865,7 @@ private void renderGameElements() {
         renderGameElements();
 
         // Draw UI text
-        renderUI(null);
+        renderUI();
     }
     /**
      * Renders a snake to look like a noodle instead of separate circles
@@ -1069,55 +1069,40 @@ private void renderGameElements() {
     }
 
     /**
-     * Renders UI elements using a dedicated SpriteBatch for consistent rendering across platforms.
+     * Renders UI elements
      */
-    private void renderUI(SpriteBatch sb) {
-        // Note: we'll ignore the passed SpriteBatch and use our dedicated uiBatch instead
-
-        // Configure the UI batch with identity projection (screen coordinates)
+    private void renderUI() {
         uiBatch.begin();
 
-        // Set the font color
         font.setColor(Color.WHITE);
 
-        // Draw player list and positions
+        Map<String, PlayerGameState> playerStates = players;
+
         float y = Gdx.graphics.getHeight() - 50;
-        font.draw(uiBatch, "Players: " + players.size(), 20, y);
+        font.draw(uiBatch, "Players: " + playerStates.size(), 20, y);
 
-        // Limit to 3 players in the UI to avoid cluttering
+        List<PlayerGameState> sortedPlayers = new ArrayList<>(playerStates.values());
+        Collections.sort(sortedPlayers, (p1, p2) -> Integer.compare(p2.getScore(), p1.getScore()));
+
         int playerCount = 0;
-        for (PlayerGameState player : players.values()) {
-            if (playerCount >= 3) break;
 
+        for (PlayerGameState player : sortedPlayers) {
             y -= 40;
             String pid = player.getPlayer_id().replace("\"", "");
             String isLocal = pid.equals(playerId) ? " (YOU)" : "";
-            font.draw(uiBatch, String.format("Player %s: (%.1f, %.1f)%s",
+
+            font.draw(uiBatch, String.format("Player%s: %d%s",
                 pid.substring(0, Math.min(4, pid.length())),
-                player.getX_pos(), player.getY_pos(), isLocal), 20, y);
+                player.getScore(), isLocal), 20, y);
 
             playerCount++;
         }
 
-        // Draw cursor position
-        y -= 40;
-        font.draw(uiBatch, String.format("Cursor: (%.1f, %.1f)",
-            targetPosition.x, targetPosition.y), 20, y);
-
-        // Draw score if local snake exists
-        if (localSnake != null) {
-            font.draw(uiBatch, "Score: " + localSnake.score,
-                Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
-        }
-
-        // Draw FPS counter
         font.draw(uiBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(),
-            Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 90);
+            Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
 
-        // Draw instructions
-        font.draw(uiBatch, "Press and hold to move", 20, 40);
+        font.draw(uiBatch, "Eat food! Press and hold to move", 20, 40);
 
-        // End the batch
         uiBatch.end();
     }
 
