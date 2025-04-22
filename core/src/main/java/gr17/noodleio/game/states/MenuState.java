@@ -1,5 +1,6 @@
 package gr17.noodleio.game.states;
 
+import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 
 import gr17.noodleio.game.API.LobbyApi;
@@ -27,7 +28,11 @@ public class MenuState extends BaseUIState {
         uiFactory.addTitle(table, "NOODLEIO");
 
         playerNameField = uiFactory.addTextField(table, "Enter player alias...", 200, 40);
-
+        playerNameField.setTextFieldListener((textField, c) -> {
+            if (c == '\n') { // Detect Enter key
+                Gdx.input.setOnscreenKeyboardVisible(false);
+            }
+        });
         uiFactory.addButton(table, "Create lobby", () -> {
             String name = playerNameField.getText();
             if (name == null || name.trim().isEmpty()) {
@@ -38,7 +43,11 @@ public class MenuState extends BaseUIState {
         });
 
         lobbyCodeField = uiFactory.addTextField(table, "Enter lobby code...", 200, 40);
-
+        lobbyCodeField.setTextFieldListener((textField, c) -> {
+            if (c == '\n') {
+                Gdx.input.setOnscreenKeyboardVisible(false);
+            }
+        });
         uiFactory.addButton(table, "Join lobby", () -> {
             String name = playerNameField.getText();
             String code = lobbyCodeField.getText();
@@ -52,6 +61,8 @@ public class MenuState extends BaseUIState {
         });
 
         uiFactory.addButton(table, "Leaderboard", () -> gsm.set(new LeaderboardState(gsm)));
+
+        uiFactory.addButton(table, "Exit", () -> Gdx.app.exit());
 
         statusLabel = uiFactory.createStatusLabel(table);
     }
@@ -69,7 +80,11 @@ public class MenuState extends BaseUIState {
     private void createLobbyWithOwner(String playerName) {
         setStatus("Creating lobby...");
         try {
+
+
             String result = lobbyApi.createLobbyWithOwner(playerName);
+            log("LobbyApi result: " + result);
+
             if (result.contains("Lobby created with ID:")) {
                 String[] parts = result.split("\\|");
                 lobbyId = parts[0].split(":")[1].trim();
@@ -78,11 +93,12 @@ public class MenuState extends BaseUIState {
                 lobbyState.setLobbyData(lobbyId, playerId, playerName);
                 gsm.set(lobbyState);
             } else {
-                setStatus("Failed to create lobby");
+                setStatus("Failed to create lobby: " + result);
+                log("Lobby creation failed with result: " + result);
             }
         } catch (Exception e) {
             logError("Error creating lobby", e);
-            setStatus("Unresolved error");
+            setStatus("Error: " + e.getMessage());
         }
     }
 
