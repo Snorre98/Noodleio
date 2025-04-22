@@ -1,6 +1,6 @@
 # noodleio
 
-Noodle.io is an android game ramen themed [Slither.io](https://en.wikipedia.org/wiki/Slither.io) snake.io clone made in Java using Libgdx game Framework and Firebase as a project for the NTNU module TDT4240 Software Architecture .
+Noodle.io is an android game ramen themed [Slither.io](https://en.wikipedia.org/wiki/Slither.io) snake.io clone made in Java using Libgdx game Framework and SupaBase as a project for the NTNU module TDT4240 Software Architecture .
 
 Create a lobby, invite your friends and play !
 
@@ -26,5 +26,5 @@ The overall project structure is the following :
 Petter Teisberg
 Yohan Saba
 Magnus Vang Johansen
-Elias Ward Elias Ward
+Elias Ward
 Snorre Kværnø Sæther
