@@ -204,7 +204,7 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
 
     // Set up camera
     this.cam = new OrthographicCamera();
-    this.cam.setToOrtho(false, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+    this.cam.setToOrtho(false, Gdx.graphics.getWidth()/3, Gdx.graphics.getHeight()/3);
 
     // Initialize graphics resources
     this.shapes = new ShapeRenderer();
