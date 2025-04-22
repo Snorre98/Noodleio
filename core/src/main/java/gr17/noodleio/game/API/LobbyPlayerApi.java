@@ -10,11 +10,6 @@ import java.util.List;
 
 public class LobbyPlayerApi {
     private final LobbyPlayerService lobbyPlayerService;
-    private String joinLobbyMessage = "";
-    private String playersListMessage = "";
-    private String leaveLobbyMessage = "";
-
-    private String startGameSessionMessage = "";
 
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
         this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
@@ -27,6 +22,7 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String joinLobby(String playerName, String lobbyId) {
+        String joinLobbyMessage = "";
         try {
             LobbyPlayer player = lobbyPlayerService.joinLobby(playerName, lobbyId);
 
@@ -52,6 +48,7 @@ public class LobbyPlayerApi {
      * @return Status message with list of players
      */
     public String getPlayersInLobby(String lobbyId) {
+        String playersListMessage = "";
         try {
             List<LobbyPlayer> players = lobbyPlayerService.getPlayersInLobby(lobbyId);
 
@@ -84,6 +81,8 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String leaveLobby(String playerId) {
+        // TODO: use this in refactor
+        String leaveLobbyMessage = "";
         try {
             boolean success = lobbyPlayerService.leaveLobby(playerId);
 
@@ -140,6 +139,7 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String startGameSession(String playerId, String lobbyId, int winningScore, int mapLength, int mapHeight) {
+        String startGameSessionMessage = "";
         try {
             kotlin.Pair<gr17.noodleio.game.models.GameSession, String> result =
                 lobbyPlayerService.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);

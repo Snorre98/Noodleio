@@ -9,7 +9,6 @@ import gr17.noodleio.game.services.LeaderboardService;
 
 public class LeaderboardApi {
     private final LeaderboardService leaderboardView;
-    private String leaderboardMessage = "";
 
     public LeaderboardApi(EnvironmentConfig environmentConfig) {
         this.leaderboardView = new LeaderboardService(environmentConfig);
@@ -52,6 +51,7 @@ public class LeaderboardApi {
      * @return Formatted string of leaderboard entries
      */
     public String fetchLeaderboard(long limit) {
+        String leaderboardMessage = "";
         try {
             // Get top entries
             List<LeaderboardEntry> topEntries = leaderboardView.getTopLeaderboard(limit);
