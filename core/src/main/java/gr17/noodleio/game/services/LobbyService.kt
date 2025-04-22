@@ -86,4 +86,66 @@ class LobbyService(environmentConfig: EnvironmentConfig) {
             }
         }
     }
+
+    /**
+     * Deletes a lobby
+     * @param lobbyId The ID of the lobby to delete
+     * @return True if the lobby was successfully deleted, false otherwise
+     */
+    fun deleteLobby(lobbyId: String): Boolean {
+        return runBlocking {
+            try {
+                logger.debug(TAG, "Attempting to delete lobby: $lobbyId")
+
+                // First, check if this is a partial ID
+                val lobbyService = LobbyPlayerService(serviceManager.getEnvironmentConfig())
+                val actualLobbyId = lobbyService.findLobbyByPartialId(lobbyId) ?: lobbyId
+
+                // Delete the lobby
+                val response = serviceManager.db
+                    .from("Lobby")
+                    .delete {
+                        filter {
+                            eq("id", actualLobbyId)
+                        }
+                    }
+
+                try {
+                    val deletedLobbies = response.decodeList<Lobby>()
+                    if (deletedLobbies.isEmpty()) {
+                        logger.debug(TAG, "No lobby with ID '$actualLobbyId' found to delete")
+                        return@runBlocking false
+                    }
+
+                    logger.info(TAG, "Successfully deleted lobby with ID: $actualLobbyId")
+                    return@runBlocking true
+                } catch (e: Exception) {
+                    logger.error(TAG, "Error decoding deletion response: ${e.message}", e)
+
+                    // Try to check if the lobby still exists, to determine if deletion was successful
+                    val checkResponse = serviceManager.db
+                        .from("Lobby")
+                        .select {
+                            filter {
+                                eq("id", actualLobbyId)
+                            }
+                        }
+
+                    val remainingLobbies = checkResponse.decodeList<Lobby>()
+                    val wasDeleted = remainingLobbies.isEmpty()
+
+                    if (wasDeleted) {
+                        logger.info(TAG, "Verified lobby deletion was successful for ID: $actualLobbyId")
+                    } else {
+                        logger.debug(TAG, "Lobby with ID '$actualLobbyId' still exists after deletion attempt")
+                    }
+
+                    return@runBlocking wasDeleted
+                }
+            } catch (e: Exception) {
+                logger.error(TAG, "Error deleting lobby: ${e.message}", e)
+                return@runBlocking false
+            }
+        }
+    }
 }

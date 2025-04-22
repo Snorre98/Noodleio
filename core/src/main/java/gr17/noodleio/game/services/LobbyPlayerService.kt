@@ -170,35 +170,37 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
      * @param partialId The partial ID to search for
      * @return The full lobby ID if found, null otherwise
      */
-    private suspend fun findLobbyByPartialId(partialId: String): String? {
+    fun findLobbyByPartialId(partialId: String): String? {
         logger.debug(TAG, "Finding lobby with partial ID: $partialId")
 
-        try {
-            // If the partial ID is actually a full UUID, just return it
-            if (isValidUUID(partialId)) {
-                return partialId
-            }
-
-            // Query for all lobbies
-            val response = serviceManager.db
-                .from("Lobby")
-                .select()
-
-            val lobbies = response.decodeList<Lobby>()
-
-            // Search for lobbies with IDs starting with the partial ID
-            for (lobby in lobbies) {
-                if (lobby.id.startsWith(partialId, ignoreCase = true)) {
-                    logger.debug(TAG, "Found matching lobby with ID: ${lobby.id}")
-                    return lobby.id
+        return runBlocking {
+            try {
+                // If the partial ID is actually a full UUID, just return it
+                if (isValidUUID(partialId)) {
+                    return@runBlocking partialId
                 }
-            }
 
-            logger.debug(TAG, "No lobby found with ID starting with '$partialId'")
-            return null
-        } catch (e: Exception) {
-            logger.error(TAG, "Error finding lobby by partial ID: ${e.message}", e)
-            return null
+                // Query for all lobbies
+                val response = serviceManager.db
+                    .from("Lobby")
+                    .select()
+
+                val lobbies = response.decodeList<Lobby>()
+
+                // Search for lobbies with IDs starting with the partial ID
+                for (lobby in lobbies) {
+                    if (lobby.id.startsWith(partialId, ignoreCase = true)) {
+                        logger.debug(TAG, "Found matching lobby with ID: ${lobby.id}")
+                        return@runBlocking lobby.id
+                    }
+                }
+
+                logger.debug(TAG, "No lobby found with ID starting with '$partialId'")
+                return@runBlocking null
+            } catch (e: Exception) {
+                logger.error(TAG, "Error finding lobby by partial ID: ${e.message}", e)
+                return@runBlocking null
+            }
         }
     }
 
@@ -249,12 +251,51 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
         }
     }
 
-    // The rest of the class implementation remains unchanged
-    fun leaveLobby(playerId: String): Boolean {
+    /**
+     * Removes a player from a lobby and returns information about whether the player was the owner
+     * @param playerId The ID of the player to remove
+     * @return Pair containing: Boolean (success of operation) and Boolean (whether player was lobby owner)
+     */
+    fun leaveLobby(playerId: String): Pair<Boolean, Boolean> {
         logger.debug(TAG, "Removing player $playerId from lobby")
 
         return runBlocking {
             try {
+                // First check if the player is a lobby owner
+                var isLobbyOwner = false
+                var lobbyId: String? = null
+
+                // Get player info first to check owner status
+                val playerResponse = serviceManager.db
+                    .from("LobbyPlayer")
+                    .select {
+                        filter {
+                            eq("id", playerId)
+                        }
+                    }
+
+                val players = playerResponse.decodeList<LobbyPlayer>()
+                if (players.isNotEmpty()) {
+                    val player = players.first()
+                    lobbyId = player.lobby_id
+
+                    // Check if this player is the lobby owner
+                    val lobbyResponse = serviceManager.db
+                        .from("Lobby")
+                        .select {
+                            filter {
+                                eq("id", lobbyId)
+                            }
+                        }
+
+                    val lobbies = lobbyResponse.decodeList<Lobby>()
+                    if (lobbies.isNotEmpty()) {
+                        val lobby = lobbies.first()
+                        isLobbyOwner = (lobby.lobby_owner == playerId)
+                    }
+                }
+
+                // Now delete the player
                 val response = serviceManager.db
                     .from("LobbyPlayer")
                     .delete {
@@ -267,18 +308,34 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                     val deletedPlayers = response.decodeList<LobbyPlayer>()
                     if (deletedPlayers.isEmpty()) {
                         logger.debug(TAG, "No player with ID '$playerId' found to remove")
-                        return@runBlocking false
+                        return@runBlocking Pair(false, false)
                     }
 
                     logger.info(TAG, "Player with ID '$playerId' removed from lobby")
-                    return@runBlocking true
+                    return@runBlocking Pair(true, isLobbyOwner)
                 } catch (e: Exception) {
                     logger.error(TAG, "Error decoding deletion response: ${e.message}", e)
-                    return@runBlocking false
+                    // Try to check if removal succeeded despite decoding error
+                    val checkResponse = serviceManager.db
+                        .from("LobbyPlayer")
+                        .select {
+                            filter {
+                                eq("id", playerId)
+                            }
+                        }
+
+                    val remainingPlayers = checkResponse.decodeList<LobbyPlayer>()
+                    val wasRemoved = remainingPlayers.isEmpty()
+
+                    if (wasRemoved) {
+                        logger.info(TAG, "Verified player with ID '$playerId' was removed from lobby")
+                    }
+
+                    return@runBlocking Pair(wasRemoved, isLobbyOwner)
                 }
             } catch (e: Exception) {
                 logger.error(TAG, "Error removing player from lobby: ${e.message}", e)
-                return@runBlocking false
+                return@runBlocking Pair(false, false)
             }
         }
     }

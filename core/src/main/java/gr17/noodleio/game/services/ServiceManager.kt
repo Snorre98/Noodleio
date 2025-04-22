@@ -39,4 +39,9 @@ class ServiceManager(private val config: EnvironmentConfig) {
     // Expose service getters at the class level
     val db: Postgrest get() = supabaseClient.postgrest
     val realtime: Realtime get() = supabaseClient.realtime
+
+    // Add a method to get the environment config
+    fun getEnvironmentConfig(): EnvironmentConfig {
+        return config
+    }
 }

@@ -48,7 +48,7 @@ public class LobbyState extends BaseUIState {
         startGameButton = uiFactory.addButton(table, "Start Game", this::startGame);
         startGameButton.setVisible(false); // Initially hidden
 
-        uiFactory.createBackButton(table, () -> gsm.set(new MenuState(gsm)));
+        uiFactory.createBackButton(table, this::leaveAndCleanup);
         statusLabel = uiFactory.createStatusLabel(table);
     }
 
@@ -111,6 +111,33 @@ public class LobbyState extends BaseUIState {
             playersLabel.setText("Error loading players");
         }
     }
+
+    /**
+     * Handles player leaving the lobby, with cleanup of lobby if player is the owner
+     */
+    private void leaveAndCleanup() {
+        try {
+            if (playerId != null && !playerId.equals("Not needed")) {
+                // Check if we are the owner
+                if (isLobbyOwner && lobbyId != null) {
+                    log("Owner is leaving lobby - deleting lobby: " + lobbyId);
+                    String result = lobbyPlayerApi.deleteLobby(lobbyId);
+                    log("Delete lobby result: " + result);
+                } else {
+                    // Just leave the lobby
+                    log("Player is leaving lobby: " + playerId);
+                    String result = lobbyPlayerApi.leaveLobby(playerId);
+                    log("Leave lobby result: " + result);
+                }
+            }
+        } catch (Exception e) {
+            logError("Error during lobby cleanup", e);
+        }
+        
+        // Return to menu
+        gsm.set(new MenuState(gsm));
+    }
+
 
     private void startGame() {
         if (lobbyId != null && playerId != null) {
