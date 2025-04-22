@@ -20,7 +20,7 @@ public abstract class BaseUIState extends State {
 
     public BaseUIState(GameStateManager gsm) {
         super(gsm);
-        log("BaseUIState constructor for " + getLoggingTag());
+        log("BaseUIState constructor");
         // Don't initialize UI here, wait until we're called to initialize
     }
 
@@ -29,7 +29,7 @@ public abstract class BaseUIState extends State {
             return;
         }
 
-        log("Initializing UI State: " + getLoggingTag());
+        log("Initializing UI State");
         // Initialize UI components in a try-catch block to handle errors gracefully
         try {
             initializeUI();
@@ -63,9 +63,9 @@ public abstract class BaseUIState extends State {
             // Create UI components specific to this state - call setupUI only after basic setup is complete
             setupUI();
 
-            log("UI initialization completed for " + getLoggingTag());
+            log("UI initialization completed");
         } catch (Exception e) {
-            logError("Error initializing UI for " + getLoggingTag(), e);
+            logError("Error initializing UI", e);
             throw e; // Re-throw to be caught by outer try-catch
         }
     }
@@ -119,7 +119,7 @@ public abstract class BaseUIState extends State {
     @Override
     public void dispose() {
         if (stage != null) {
-            log("Disposing stage for " + getLoggingTag());
+            log("Disposing stage for");
             stage.dispose();
         }
     }
@@ -134,7 +134,7 @@ public abstract class BaseUIState extends State {
     }
 
     protected void returnToMenu() {
-        log("Returning to menu from " + getLoggingTag());
+        log("Returning to menu from");
         gsm.set(new MenuState(gsm));
     }
 }

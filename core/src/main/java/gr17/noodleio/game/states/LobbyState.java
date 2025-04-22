@@ -40,7 +40,6 @@ public class LobbyState extends BaseUIState {
         lobbyCodeLabel = uiFactory.addLabel(table, "-----");
 
         playerNameLabel = uiFactory.addLabel(table, "You: -----");
-        uiFactory.addLabel(table, "Players:");
         playersLabel = uiFactory.addLabel(table, "Loading players...");
 
         startGameButton = uiFactory.addButton(table, "Start Game", this::startGame);

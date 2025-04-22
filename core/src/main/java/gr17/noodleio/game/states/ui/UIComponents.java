@@ -9,6 +9,7 @@ import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Skin;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
+import com.badlogic.gdx.graphics.g2d.freetype.FreeTypeFontGenerator;
 
 public class UIComponents {
 
@@ -36,31 +37,27 @@ public class UIComponents {
     }
 
     private void initialize() {
-        if (initialized) {
-            return;
-        }
+        if (initialized) return;
 
         try {
             skin = new Skin();
             Gdx.app.log("UIComponents", "Initializing skin");
 
-            // Load default font
-            if (Gdx.files.internal("default.fnt").exists()) {
-                skin.add("default-font", new BitmapFont(Gdx.files.internal("default.fnt")));
-            } else {
-                skin.add("default-font", new BitmapFont());
-            }
+            // === Load custom TTF font ===
+            FreeTypeFontGenerator generator = new FreeTypeFontGenerator(Gdx.files.internal("PressStart2P-Regular.ttf"));
+            FreeTypeFontGenerator.FreeTypeFontParameter parameter = new FreeTypeFontGenerator.FreeTypeFontParameter();
+            parameter.size = 14; // adjust as needed
+            parameter.minFilter = Texture.TextureFilter.Linear;
+            parameter.magFilter = Texture.TextureFilter.Linear;
+            BitmapFont customFont = generator.generateFont(parameter);
+            generator.dispose();
 
-            // Create pixel textures
+            skin.add("default-font", customFont); // override the default
+
+            // continue setup...
             createPixelTextures();
-
-            // Create button styles
             createButtonStyle();
-
-            // Create label styles
             createLabelStyle();
-
-            // Create text field style
             createTextFieldStyle();
 
             initialized = true;
@@ -68,7 +65,7 @@ public class UIComponents {
         } catch (Exception e) {
             Gdx.app.error("UIComponents", "Error initializing skin", e);
             createFallbackSkin();
-            initialized = true; // Even if fallback, mark as initialized
+            initialized = true;
         }
     }
 
@@ -160,16 +157,6 @@ public class UIComponents {
         return new TextButton(text, skin);
     }
 
-    public TextButton createButton(String text, float width, float height) {
-        // Ensure skin is initialized
-        if (!initialized || skin == null) {
-            initialize();
-        }
-        TextButton button = new TextButton(text, skin);
-        button.getLabel().setFontScale(1);
-        return button;
-    }
-
     public Label createLabel(String text) {
         // Ensure skin is initialized
         if (!initialized || skin == null) {
@@ -202,28 +189,4 @@ public class UIComponents {
         return field;
     }
 
-    public void dispose() {
-        if (skin != null) {
-            // Dispose all textures
-            if (skin.has("white", Texture.class)) {
-                skin.get("white", Texture.class).dispose();
-            }
-            if (skin.has("black", Texture.class)) {
-                skin.get("black", Texture.class).dispose();
-            }
-            if (skin.has("gray", Texture.class)) {
-                skin.get("gray", Texture.class).dispose();
-            }
-            if (skin.has("default-round", Texture.class)) {
-                skin.get("default-round", Texture.class).dispose();
-            }
-            if (skin.has("default-round-down", Texture.class)) {
-                skin.get("default-round-down", Texture.class).dispose();
-            }
-
-            skin.dispose();
-            skin = null;
-            initialized = false;
-        }
-    }
 }
