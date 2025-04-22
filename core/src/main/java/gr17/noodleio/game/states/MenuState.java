@@ -27,6 +27,15 @@ public class MenuState extends BaseUIState {
     protected void setupUI() {
         uiFactory.addTitle(table, "NOODLEIO");
 
+        int screenWidth = Gdx.graphics.getWidth();
+        int screenHeight = Gdx.graphics.getHeight();
+
+        uiFactory.addTitle(table, "NOODLEIO");
+
+        // w:750 x h:1334 on 375 x 667 device ==> 2dpi
+        uiFactory.addLabel(table, "Resolution: " + screenWidth + " x " + screenHeight, 10);
+
+
         playerNameField = uiFactory.addTextField(table, "Enter player alias...", 200, 40);
         playerNameField.setTextFieldListener((textField, c) -> {
             if (c == '\n') { // Detect Enter key
