@@ -44,6 +44,8 @@ android {
     versionName "1.0"
     multiDexEnabled true
 
+    // Native Development Kit -- a set of tools that allows you to use native code languages
+    // Interfaces between Java/Kotlin code and native code through JNI (Java Native Interface)
     ndk {
       abiFilters 'armeabi-v7a', 'arm64-v8a', 'x86', 'x86_64'
     }
