@@ -7,12 +7,15 @@ import com.badlogic.gdx.Gdx;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
 import gr17.noodleio.game.services.LobbyPlayerService;
+import gr17.noodleio.game.services.LobbyService;
 
 public class LobbyPlayerApi {
     private final LobbyPlayerService lobbyPlayerService;
+    private final LobbyService lobbyService;
 
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
         this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
+        this.lobbyService = new LobbyService(environmentConfig);
     }
 
     /**
@@ -85,12 +88,30 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String leaveLobby(String playerId) {
-        // TODO: use this in refactor
         String leaveLobbyMessage = "";
         try {
-            boolean success = lobbyPlayerService.leaveLobby(playerId);
+            kotlin.Pair<Boolean, Boolean> result = lobbyPlayerService.leaveLobby(playerId);
+            boolean success = result.getFirst();
+            boolean wasLobbyOwner = result.getSecond();
 
             if (success) {
+                // If the player was the lobby owner, delete the lobby
+                if (wasLobbyOwner) {
+                    // Get lobby ID from player
+                    LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
+                    if (player != null) {
+                        String lobbyId = player.getLobby_id();
+                        
+                        // Delete the lobby
+                        boolean lobbyDeleted = lobbyService.deleteLobby(lobbyId);
+                        if (lobbyDeleted) {
+                            leaveLobbyMessage = "Player (owner) successfully left the lobby. Lobby has been deleted.";
+                        } else {
+                            leaveLobbyMessage = "Player (owner) successfully left the lobby, but failed to delete the lobby.";
+                        }
+                        return leaveLobbyMessage;
+                    }
+                }
                 leaveLobbyMessage = "Player successfully left the lobby";
                 return leaveLobbyMessage;
             } else {
@@ -105,12 +126,31 @@ public class LobbyPlayerApi {
     }
 
     /**
+     * Deletes a lobby directly
+     * @param lobbyId The ID of the lobby to delete
+     * @return Status message indicating success or failure
+     */
+    public String deleteLobby(String lobbyId) {
+        try {
+            boolean success = lobbyService.deleteLobby(lobbyId);
+            if (success) {
+                return "Lobby successfully deleted";
+            } else {
+                return "Failed to delete lobby. Lobby may not exist.";
+            }
+        } catch (Exception e) {
+            String errorMsg = "Error deleting lobby: " + e.getMessage();
+            e.printStackTrace();
+            return errorMsg;
+        }
+    }
+
+    /**
      * Gets a player by their ID
      * @param playerId The ID of the player to retrieve
      * @return Status message with player details if found
      */
     public String getPlayerById(String playerId) {
-        // TODO: use this in refactor
         try {
             LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
 

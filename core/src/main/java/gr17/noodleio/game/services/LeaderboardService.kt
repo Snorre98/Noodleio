@@ -35,7 +35,7 @@ class LeaderboardService(environmentConfig: EnvironmentConfig) {
                     .from("Leaderboard")
                     .select(){
                         limit(limit)
-                        order(column = "score", order = Order.DESCENDING)
+                        order(column = "duration_seconds", order = Order.ASCENDING)
                     }
                     .decodeList<LeaderboardEntry>()
 
