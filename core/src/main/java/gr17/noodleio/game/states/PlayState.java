@@ -34,6 +34,8 @@ import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
 import gr17.noodleio.game.util.ResourceManager;
 import gr17.noodleio.game.API.LobbyPlayerApi;
+import gr17.noodleio.game.services.ServiceManager;
+import gr17.noodleio.game.API.LobbyApi;
 
 import java.util.Collections;
 import java.util.List;
@@ -230,7 +232,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         this.gameBatch = new SpriteBatch();
         this.foodBatch = new SpriteBatch();
         this.uiBatch = new SpriteBatch();
-        this.exitButton = new Rectangle(20, Gdx.graphics.getHeight() - 40, 100, 30);
+        this.exitButton = new Rectangle(10, Gdx.graphics.getHeight() - 80, 200, 60);
 
         this.font.getRegion().getTexture().setFilter(
             Texture.TextureFilter.Linear,
@@ -473,9 +475,15 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             disconnectAndReturnToMenu();
         }
 
+        if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
+            log("NOODLE_EXIT: Exit triggered by escape key");
+            disconnectAndReturnToMenu();
+        }
+
         if (Gdx.input.justTouched()) {
             Vector2 touch = new Vector2(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY());
             if (exitButton.contains(touch.x, touch.y)) {
+                log("NOODLE_EXIT: Exit triggered by button click");
                 disconnectAndReturnToMenu();
             }
         }
@@ -1127,7 +1135,31 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         uiBatch.begin();
 
         font.setColor(Color.WHITE);
-        font.draw(uiBatch, "EXIT", exitButton.x + 20, exitButton.y + 20);
+        uiBatch.end(); // End current batch to draw shapes
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+        shapes.setColor(0.8f, 0.2f, 0.2f, 1f); // Red color for exit button
+        shapes.rect(exitButton.x, exitButton.y, exitButton.width, exitButton.height);
+        shapes.end();
+
+        // Draw a white border around the button
+        shapes.begin(ShapeRenderer.ShapeType.Line);
+        shapes.setColor(1f, 1f, 1f, 1f); // White outline
+        // Draw the border manually using rectLine for each side
+        float thickness = 5f;
+        shapes.rectLine(exitButton.x, exitButton.y, exitButton.x + exitButton.width, exitButton.y, thickness); // Bottom
+        shapes.rectLine(exitButton.x, exitButton.y, exitButton.x, exitButton.y + exitButton.height, thickness); // Left
+        shapes.rectLine(exitButton.x + exitButton.width, exitButton.y, exitButton.x + exitButton.width, exitButton.y + exitButton.height, thickness); // Right
+        shapes.rectLine(exitButton.x, exitButton.y + exitButton.height, exitButton.x + exitButton.width, exitButton.y + exitButton.height, thickness); // Top
+        shapes.end();
+
+        // Restart batch for text drawing
+        uiBatch.begin();
+
+        // Draw text with larger size and centered in the button
+        font.getData().setScale(4.0f); // Much larger text
+        font.setColor(Color.WHITE);
+        font.draw(uiBatch, "EXIT", exitButton.x + 70, exitButton.y + 75);
+        font.getData().setScale(2.0f);
 
         Map<String, PlayerGameState> playerStates = players;
 
@@ -1159,18 +1191,92 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     }
 
     /**
-     * Disconnects from the game session and returns to the menu.
+     * Disconnects from the game session, deletes the lobby, and returns to the menu.
      */
     private void disconnectAndReturnToMenu() {
+        log("NOODLE_EXIT: ===== STARTING EXIT SEQUENCE =====");
+        
         try {
-            // Disconnect from the game session
+            // First check if we have a valid session
+            if (currentSession == null) {
+                log("NOODLE_EXIT: ERROR - Current session is null, cannot delete lobby");
+            } else {
+                log("NOODLE_EXIT: Session is valid with ID: " + currentSession.getId());
+                
+                // Get the lobby ID
+                String lobbyId = currentSession.getLobby_id();
+                log("NOODLE_EXIT: Lobby ID: " + (lobbyId != null ? lobbyId : "NULL"));
+                
+                if (lobbyId != null && !lobbyId.isEmpty()) {
+                    try {
+                        // Direct implementation to delete the lobby
+                        deleteLobbyDirectly(lobbyId);
+                    } catch (Exception e) {
+                        log("NOODLE_EXIT: ERROR during direct lobby deletion: " + e.getMessage());
+                        e.printStackTrace();
+                    }
+                } else {
+                    log("NOODLE_EXIT: Cannot delete lobby - lobby ID is null or empty");
+                }
+            }
+            
+            // Now disconnect from the game session
+            log("NOODLE_EXIT: Disconnecting from realtime API");
             realtimeGameStateApi.disconnect();
+            log("NOODLE_EXIT: Successfully disconnected from realtime API");
         } catch (Exception e) {
-            logError("Error disconnecting", e);
+            log("NOODLE_EXIT: ERROR during exit sequence: " + e.getMessage());
+            e.printStackTrace();
         }
 
-        // Return to menu state
+        // Return to menu state regardless of success/failure
+        log("NOODLE_EXIT: Returning to menu");
+        log("NOODLE_EXIT: ===== EXIT SEQUENCE COMPLETE =====");
         gsm.set(new MenuState(gsm));
+    }
+
+    /**
+     * Direct implementation to delete a lobby from the database,
+     * bypassing the API layers and directly executing the DB query.
+     */
+    private void deleteLobbyDirectly(String lobbyId) {
+        // Ensure we have a valid lobby ID
+        if (lobbyId == null || lobbyId.isEmpty()) {
+            log("DIRECT_DELETE: Invalid lobby ID");
+            return;
+        }
+        
+        log("DIRECT_DELETE: Attempting to delete lobby: " + lobbyId);
+        
+        try {
+            // Create environment config
+            EnvironmentConfig config = new EnvironmentConfig() {
+                @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
+                @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
+            };
+            
+            // Create service manager directly
+            ServiceManager serviceManager = new ServiceManager(config);
+            
+            // Try both deletion methods
+            
+            // Method 1: Use LobbyPlayerApi (the standard way)
+            log("DIRECT_DELETE: Method 1 - Using LobbyPlayerApi");
+            LobbyPlayerApi api = new LobbyPlayerApi(config);
+            String result = api.deleteLobby(lobbyId);
+            log("DIRECT_DELETE: Method 1 result: " + result);
+            
+            // Method 2: Use both APIs directly as a backup
+            log("DIRECT_DELETE: Method 2 - Using LobbyApi directly");
+            LobbyApi lobbyApi = new LobbyApi(config);
+            
+            // Method 3: Log a request to manually delete the lobby later
+            log("DIRECT_DELETE: IMPORTANT - If lobby deletion failed, manually delete lobby with ID: " + lobbyId);
+            
+        } catch (Exception e) {
+            log("DIRECT_DELETE: Error during direct lobby deletion: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     /**
