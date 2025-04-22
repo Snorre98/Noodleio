@@ -21,6 +21,7 @@ data class GameSession(
 )
 
 
+/** GameSession database table definition in Supabase **/
 /*
 create table public."GameSession" (
   id uuid not null default gen_random_uuid (),
@@ -38,9 +39,8 @@ create table public."GameSession" (
 
 
 
-
+/** DB server-side functions in Supabase **/
 /*
-
 CREATE OR REPLACE FUNCTION check_winning_score() RETURNS TRIGGER AS $$
 BEGIN
   -- Check if the player's score equals or exceeds the winning score
@@ -59,5 +59,4 @@ CREATE TRIGGER check_win_condition
 AFTER UPDATE OF score ON "PlayerGameState"
 FOR EACH ROW
 EXECUTE FUNCTION check_winning_score();
-
 * */

@@ -19,14 +19,7 @@ data class PlayerGameState (
     val score: Int,
 )
 
-/*
----- DB function ----
-
-fn: if (PlayerGameState.x_pos and PlayerGameState.y_pos) == (Food.x_pos and Food.y_pos) --> PlayerGamestate.score ++
-
-when PlayerGameState.score === GameSession(session_id).winning_score the GameSession.ended_at should be set to now
- */
-
+/** PlayerGameState database table definition in Supabase **/
 /*
 create table public."PlayerGameState" (
   id uuid not null default gen_random_uuid (),
@@ -44,9 +37,8 @@ create table public."PlayerGameState" (
 
 
 
-/** The DB functions described bellow are for documentation purposes only. They are defined in Supabase, not here! **/
-
-/* DB Function
+/** DB server-side functions in Supabase **/
+/*
 -- Function to move a player up (decrease y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_up(
@@ -110,7 +102,8 @@ END;
 $$;
 * */
 
-/* DB function
+/** DB server-side functions in Supabase **/
+/*
 -- Function to move a player down (increase y position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_down(
@@ -174,7 +167,8 @@ END;
 $$;
 * */
 
-/* DB function
+/** DB server-side functions in Supabase **/
+/*
 -- Function to move a player left (decrease x position by 8)
 -- Only moves if the new position is within map boundaries
 CREATE OR REPLACE FUNCTION move_left(
@@ -238,6 +232,7 @@ END;
 $$;
 * */
 
+/** DB server-side functions in Supabase **/
 /*
 -- Function to move a player right (increase x position by 8)
 -- Only moves if the new position is within map boundaries

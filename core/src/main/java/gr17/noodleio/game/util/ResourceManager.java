@@ -30,7 +30,7 @@ public class ResourceManager {
             speedBoostTexture = new Texture(Gdx.files.internal("food/speedboost.png"));
             magnetBoostTexture = new Texture(Gdx.files.internal("food/magnetboost.png"));
             backgroundTexture = new Texture(Gdx.files.internal("food/bowl.png")); // Add this line
-            
+
             // Apply texture filters for smoother scaling
             wheatTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
             eggTexture.setFilter(Texture.TextureFilter.Linear, Texture.TextureFilter.Linear);
@@ -72,16 +72,4 @@ public class ResourceManager {
         return magnetBoostTexture;
     }
 
-    public void dispose() {
-        if (defaultFont != null) {
-            defaultFont.dispose();
-        }
-            
-        // Dispose textures
-        if (wheatTexture != null) wheatTexture.dispose();
-        if (eggTexture != null) eggTexture.dispose();
-        if (speedBoostTexture != null) speedBoostTexture.dispose();
-        if (magnetBoostTexture != null) magnetBoostTexture.dispose();
-        if (backgroundTexture != null) backgroundTexture.dispose();
-    }
 }

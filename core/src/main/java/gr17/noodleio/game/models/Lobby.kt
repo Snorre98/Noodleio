@@ -14,6 +14,8 @@ data class Lobby (
     val created_at: String
 )
 
+
+/** Lobby database table definition in Supabase **/
 /*
 create table public."Lobby" (
   id uuid not null default gen_random_uuid (),
@@ -26,10 +28,9 @@ create table public."Lobby" (
 
 */
 
+
+/** DB server-side functions in Supabase **/
 /*
-
-Database function for creating a lobby with owner
-
 -- Function to create a new lobby and add a player as the owner in one operation
 create or replace function create_lobby_with_owner (
   p_player_name VARCHAR, -- The player's name
@@ -95,7 +96,5 @@ BEGIN
   END;
 END;
 $$;
-
-
  */
 

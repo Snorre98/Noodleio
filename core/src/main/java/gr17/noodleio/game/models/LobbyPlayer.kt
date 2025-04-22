@@ -15,8 +15,9 @@ data class LobbyPlayer (
     val joined_at: Instant,
 )
 
-/*
 
+/** LobbyPlayer database table definition in Supabase **/
+/*
 create table public."LobbyPlayer" (
   id uuid not null default gen_random_uuid (),
   player_name character varying not null,
@@ -26,18 +27,11 @@ create table public."LobbyPlayer" (
   constraint LobbyPlayer_player_name_key unique (player_name),
   constraint LobbyPlayer_lobby_id_fkey foreign KEY (lobby_id) references "Lobby" (id) on delete CASCADE
 ) TABLESPACE pg_default;
-
 * */
 
+
+/** DB server-side functions in Supabase **/
 /*
-Handled separately: players in the lobby will be subscribed to the GameSession table and the PlayerGameState table
- */
-
-
-/*
-*
----- DB function code----
-
 -- Function to start a game session for a lobby
 -- Only the lobby owner can start a game session
 CREATE OR REPLACE FUNCTION start_game_session(
@@ -153,7 +147,4 @@ BEGIN
   END;
 END;
 $$;
-*
-*
-*
 * */

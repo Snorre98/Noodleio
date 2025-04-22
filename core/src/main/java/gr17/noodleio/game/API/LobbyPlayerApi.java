@@ -4,20 +4,15 @@ import com.badlogic.gdx.Gdx;
 
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.models.LobbyPlayer;
-import gr17.noodleio.game.views.LobbyPlayerViews;
+import gr17.noodleio.game.services.LobbyPlayerService;
 
 import java.util.List;
 
 public class LobbyPlayerApi {
-    private final LobbyPlayerViews lobbyPlayerViews;
-    private String joinLobbyMessage = "";
-    private String playersListMessage = "";
-    private String leaveLobbyMessage = "";
-
-    private String startGameSessionMessage = "";
+    private final LobbyPlayerService lobbyPlayerService;
 
     public LobbyPlayerApi(EnvironmentConfig environmentConfig) {
-        this.lobbyPlayerViews = new LobbyPlayerViews(environmentConfig);
+        this.lobbyPlayerService = new LobbyPlayerService(environmentConfig);
     }
 
     /**
@@ -27,8 +22,9 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String joinLobby(String playerName, String lobbyId) {
+        String joinLobbyMessage = "";
         try {
-            LobbyPlayer player = lobbyPlayerViews.joinLobby(playerName, lobbyId);
+            LobbyPlayer player = lobbyPlayerService.joinLobby(playerName, lobbyId);
 
             if (player != null) {
                 joinLobbyMessage = "Player '" + playerName + "' successfully joined lobby with ID: " + lobbyId +
@@ -47,30 +43,14 @@ public class LobbyPlayerApi {
     }
 
     /**
-     * Creates a player with random name and joins a lobby (useful for testing)
-     * @param lobbyId The ID of the lobby to join
-     * @return Status message indicating success or failure
-     */
-    public String joinLobbyWithRandomPlayer(String lobbyId) {
-        try {
-            // Generate a player name with timestamp to ensure uniqueness
-            String playerName = "TestPlayer_" + System.currentTimeMillis();
-            return joinLobby(playerName, lobbyId);
-        } catch (Exception e) {
-            joinLobbyMessage = "Error creating random player: " + e.getMessage();
-            e.printStackTrace();
-            return joinLobbyMessage;
-        }
-    }
-
-    /**
      * Gets all players in a lobby
      * @param lobbyId The ID of the lobby
      * @return Status message with list of players
      */
     public String getPlayersInLobby(String lobbyId) {
+        String playersListMessage = "";
         try {
-            List<LobbyPlayer> players = lobbyPlayerViews.getPlayersInLobby(lobbyId);
+            List<LobbyPlayer> players = lobbyPlayerService.getPlayersInLobby(lobbyId);
 
             StringBuilder sb = new StringBuilder("Players in lobby:\n");
 
@@ -101,8 +81,10 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String leaveLobby(String playerId) {
+        // TODO: use this in refactor
+        String leaveLobbyMessage = "";
         try {
-            boolean success = lobbyPlayerViews.leaveLobby(playerId);
+            boolean success = lobbyPlayerService.leaveLobby(playerId);
 
             if (success) {
                 leaveLobbyMessage = "Player successfully left the lobby";
@@ -118,14 +100,16 @@ public class LobbyPlayerApi {
         }
     }
 
+
     /**
      * Gets a player by their ID
      * @param playerId The ID of the player to retrieve
      * @return Status message with player details if found
      */
     public String getPlayerById(String playerId) {
+        // TODO: use this in refactor
         try {
-            LobbyPlayer player = lobbyPlayerViews.getPlayerById(playerId);
+            LobbyPlayer player = lobbyPlayerService.getPlayerById(playerId);
 
             if (player != null) {
                 return "Player found: " + player.getPlayer_name() +
@@ -155,9 +139,10 @@ public class LobbyPlayerApi {
      * @return Status message indicating success or failure
      */
     public String startGameSession(String playerId, String lobbyId, int winningScore, int mapLength, int mapHeight) {
+        String startGameSessionMessage = "";
         try {
             kotlin.Pair<gr17.noodleio.game.models.GameSession, String> result =
-                lobbyPlayerViews.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
+                lobbyPlayerService.startGameSession(playerId, lobbyId, winningScore, mapLength, mapHeight);
 
             gr17.noodleio.game.models.GameSession gameSession = result.getFirst();
             String message = result.getSecond();
@@ -193,7 +178,7 @@ public class LobbyPlayerApi {
     public String checkActiveGameSession(String lobbyId) {
         try {
             // Check if an active game session exists for this lobby
-            return lobbyPlayerViews.checkActiveGameSession(lobbyId);
+            return lobbyPlayerService.checkActiveGameSession(lobbyId);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error checking for active game session", e);
             return null;
@@ -203,7 +188,7 @@ public class LobbyPlayerApi {
     public String getPlayerIdFromName(String playerName) {
         try {
             // Get player ID from player name
-            return lobbyPlayerViews.getPlayerIdFromName(playerName);
+            return lobbyPlayerService.getPlayerIdFromName(playerName);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error getting player ID from name", e);
             return null;
@@ -212,50 +197,10 @@ public class LobbyPlayerApi {
 
     public boolean isLobbyOwner(String playerId, String lobbyId) {
         try {
-            return lobbyPlayerViews.isLobbyOwner(playerId, lobbyId);
+            return lobbyPlayerService.isLobbyOwner(playerId, lobbyId);
         } catch (Exception e) {
             Gdx.app.error("LobbyPlayerApi", "Error checking if player is lobby owner", e);
             return false;
         }
-    }
-
-    /**
-     * Gets the most recent start game session message
-     * @return The start game session status message
-     */
-    public String getStartGameSessionMessage() {
-        return startGameSessionMessage;
-    }
-
-    /**
-     * Gets the most recent join lobby message
-     * @return The join lobby status message
-     */
-    public String getJoinLobbyMessage() {
-        return joinLobbyMessage;
-    }
-
-    /**
-     * Gets the most recent players list message
-     * @return The players list message
-     */
-    public String getPlayersListMessage() {
-        return playersListMessage;
-    }
-
-    /**
-     * Gets the most recent leave lobby message
-     * @return The leave lobby status message
-     */
-    public String getLeaveLobbyMessage() {
-        return leaveLobbyMessage;
-    }
-
-    /**
-     * Gets the underlying LobbyPlayerService
-     * @return The LobbyPlayerService instance
-     */
-    public LobbyPlayerViews getLobbyPlayerService() {
-        return lobbyPlayerViews;
     }
 }

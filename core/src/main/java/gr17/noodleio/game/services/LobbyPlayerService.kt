@@ -1,10 +1,11 @@
-package gr17.noodleio.game.views
+package gr17.noodleio.game.services
 
 import gr17.noodleio.game.config.EnvironmentConfig
 import gr17.noodleio.game.models.GameSession
 import gr17.noodleio.game.models.Lobby
 import gr17.noodleio.game.models.LobbyPlayer
-import io.github.jan.supabase.postgrest.query.filter.FilterOperator
+import gr17.noodleio.game.services.logging.ServiceLogger
+import gr17.noodleio.game.services.logging.ServiceLoggerFactory
 import kotlinx.coroutines.runBlocking
 import kotlinx.datetime.Clock
 import kotlinx.serialization.json.buildJsonObject
@@ -14,13 +15,17 @@ import kotlinx.serialization.Serializable
 import java.util.UUID
 
 /**
- * For a player to join a lobby
- * The player joins the lobby by posting the lobby key (the lobby UUID)
- * */
-class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
+ * Service for managing lobby player operations
+ * Allows players to join lobbies and start game sessions
+ */
+class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
 
-    // Create our service manager with the environment config
+    private val logger: ServiceLogger = ServiceLoggerFactory.getLogger()
     private val serviceManager: ServiceManager = ServiceManager(environmentConfig)
+
+    companion object {
+        private const val TAG = "LobbyPlayerService"
+    }
 
     /**
      * Allows a player to join a lobby by its ID
@@ -29,12 +34,12 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
      * @return The created LobbyPlayer or null if there was an error
      */
     fun joinLobby(playerName: String, lobbyId: String): LobbyPlayer? {
-        println("DEBUG LobbyPlayerService: Starting joinLobby with playerName=$playerName, lobbyId=$lobbyId")
+        logger.debug(TAG, "Starting joinLobby with playerName=$playerName, lobbyId=$lobbyId")
 
         return runBlocking {
             try {
                 // Check if player name is already taken
-                println("DEBUG LobbyPlayerService: Checking if player name is already taken")
+                logger.debug(TAG, "Checking if player name is already taken")
                 val existingPlayerQuery = serviceManager.db
                     .from("LobbyPlayer")
                     .select {
@@ -43,21 +48,18 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         }
                     }
 
-                // Check if the result contains any players
                 try {
                     val existingPlayers = existingPlayerQuery.decodeList<LobbyPlayer>()
                     if (existingPlayers.isNotEmpty()) {
-                        println("Player name '$playerName' is already taken")
+                        logger.info(TAG, "Player name '$playerName' is already taken")
                         return@runBlocking null
                     }
                 } catch (e: Exception) {
-                    // If decoding fails, it likely means no results were found
-                    // This is fine, continue with the join
-                    println("No existing players found with name '$playerName'")
+                    logger.debug(TAG, "No existing players found with name '$playerName'")
                 }
 
                 // Check if lobby exists
-                println("DEBUG LobbyPlayerService: Checking if lobby exists")
+                logger.debug(TAG, "Checking if lobby exists")
                 val lobbyQuery = serviceManager.db
                     .from("Lobby")
                     .select {
@@ -66,19 +68,17 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         }
                     }
 
-                // Check if lobby exists by decoding the result
                 try {
                     val lobbies = lobbyQuery.decodeList<Lobby>()
                     if (lobbies.isEmpty()) {
-                        println("DEBUG LobbyPlayerService: Lobby with ID '$lobbyId' does not exist")
+                        logger.debug(TAG, "Lobby with ID '$lobbyId' does not exist")
                         return@runBlocking null
                     }
 
-                    // Get the lobby for max player check
                     val lobby = lobbies.first()
 
                     // Check if lobby is full
-                    println("DEBUG LobbyPlayerService: Checking if lobby is full")
+                    logger.debug(TAG, "Checking if lobby is full")
                     val playersInLobby = serviceManager.db
                         .from("LobbyPlayer")
                         .select {
@@ -89,39 +89,36 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         .decodeList<LobbyPlayer>()
 
                     if (playersInLobby.size >= lobby.max_players) {
-                        println("DEBUG LobbyPlayerService: Lobby is full (${playersInLobby.size}/${lobby.max_players})")
+                        logger.debug(TAG, "Lobby is full (${playersInLobby.size}/${lobby.max_players})")
                         return@runBlocking null
                     }
 
                 } catch (e: Exception) {
-                    println("DEBUG LobbyPlayerService: Error checking lobby: ${e.message}")
-                    e.printStackTrace()
+                    logger.error(TAG, "Error checking lobby: ${e.message}", e)
                     return@runBlocking null
                 }
 
                 // Try to insert a player
-                println("DEBUG LobbyPlayerService: Creating player entry")
+                logger.debug(TAG, "Creating player entry")
 
                 try {
-                    // Create the player entry
                     val jsonData = buildJsonObject {
                         put("player_name", playerName)
                         put("lobby_id", lobbyId)
                     }
 
-                    println("DEBUG LobbyPlayerService: Inserting player with data: $jsonData")
+                    logger.debug(TAG, "Inserting player with data: $jsonData")
                     val response = serviceManager.db
                         .from("LobbyPlayer")
                         .insert(jsonData)
 
                     try {
                         val player = response.decodeSingle<LobbyPlayer>()
-                        println("DEBUG LobbyPlayerService: Player '${player.player_name}' joined lobby '${player.lobby_id}' successfully")
+                        logger.info(TAG, "Player '${player.player_name}' joined lobby '${player.lobby_id}' successfully")
                         return@runBlocking player
                     } catch (e: Exception) {
-                        println("DEBUG LobbyPlayerService: Failed to decode response, likely empty: ${e.message}")
+                        logger.debug(TAG, "Failed to decode response, likely empty: ${e.message}")
 
-                        // The insertion might have succeeded but returned no data
                         // Check if the player was actually added
                         val checkQuery = serviceManager.db
                             .from("LobbyPlayer")
@@ -135,12 +132,11 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         val possiblePlayers = checkQuery.decodeList<LobbyPlayer>()
                         if (possiblePlayers.isNotEmpty()) {
                             val player = possiblePlayers.first()
-                            println("DEBUG LobbyPlayerService: Found player after insertion: ${player.player_name}")
+                            logger.debug(TAG, "Found player after insertion: ${player.player_name}")
                             return@runBlocking player
                         }
 
-                        println("DEBUG LobbyPlayerService: Player not found after insertion attempt, creating placeholder")
-                        // Create a placeholder as a last resort
+                        logger.debug(TAG, "Player not found after insertion attempt, creating placeholder")
                         return@runBlocking LobbyPlayer(
                             id = UUID.randomUUID().toString(),
                             player_name = playerName,
@@ -149,13 +145,11 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         )
                     }
                 } catch (e: Exception) {
-                    println("DEBUG LobbyPlayerService: Error inserting player: ${e.message}")
-                    e.printStackTrace()
+                    logger.error(TAG, "Error inserting player: ${e.message}", e)
                     return@runBlocking null
                 }
             } catch (e: Exception) {
-                println("DEBUG LobbyPlayerService: Error in joinLobby: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error in joinLobby: ${e.message}", e)
                 return@runBlocking null
             }
         }
@@ -167,7 +161,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
      * @return List of LobbyPlayer objects or empty list if none found or error
      */
     fun getPlayersInLobby(lobbyId: String): List<LobbyPlayer> {
-        println("DEBUG LobbyPlayerService: Getting players in lobby $lobbyId")
+        logger.debug(TAG, "Getting players in lobby $lobbyId")
 
         return runBlocking {
             try {
@@ -181,15 +175,14 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
 
                 try {
                     val players = response.decodeList<LobbyPlayer>()
-                    println("DEBUG LobbyPlayerService: Found ${players.size} players in lobby '$lobbyId'")
+                    logger.debug(TAG, "Found ${players.size} players in lobby '$lobbyId'")
                     return@runBlocking players
                 } catch (e: Exception) {
-                    println("DEBUG LobbyPlayerService: Error decoding players: ${e.message}")
+                    logger.error(TAG, "Error decoding players: ${e.message}", e)
                     return@runBlocking emptyList()
                 }
             } catch (e: Exception) {
-                println("DEBUG LobbyPlayerService: Error getting players in lobby: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error getting players in lobby: ${e.message}", e)
                 return@runBlocking emptyList()
             }
         }
@@ -201,7 +194,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
      * @return True if successful, false otherwise
      */
     fun leaveLobby(playerId: String): Boolean {
-        println("DEBUG LobbyPlayerService: Removing player $playerId from lobby")
+        logger.debug(TAG, "Removing player $playerId from lobby")
 
         return runBlocking {
             try {
@@ -216,19 +209,18 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                 try {
                     val deletedPlayers = response.decodeList<LobbyPlayer>()
                     if (deletedPlayers.isEmpty()) {
-                        println("DEBUG LobbyPlayerService: No player with ID '$playerId' found to remove")
+                        logger.debug(TAG, "No player with ID '$playerId' found to remove")
                         return@runBlocking false
                     }
 
-                    println("DEBUG LobbyPlayerService: Player with ID '$playerId' removed from lobby")
+                    logger.info(TAG, "Player with ID '$playerId' removed from lobby")
                     return@runBlocking true
                 } catch (e: Exception) {
-                    println("DEBUG LobbyPlayerService: Error decoding deletion response: ${e.message}")
+                    logger.error(TAG, "Error decoding deletion response: ${e.message}", e)
                     return@runBlocking false
                 }
             } catch (e: Exception) {
-                println("DEBUG LobbyPlayerService: Error removing player from lobby: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error removing player from lobby: ${e.message}", e)
                 return@runBlocking false
             }
         }
@@ -240,7 +232,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
      * @return The LobbyPlayer object or null if not found
      */
     fun getPlayerById(playerId: String): LobbyPlayer? {
-        println("DEBUG LobbyPlayerService: Getting player by ID $playerId")
+        logger.debug(TAG, "Getting player by ID $playerId")
 
         return runBlocking {
             try {
@@ -255,25 +247,23 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                 try {
                     val players = response.decodeList<LobbyPlayer>()
                     if (players.isEmpty()) {
-                        println("DEBUG LobbyPlayerService: No player found with ID '$playerId'")
+                        logger.debug(TAG, "No player found with ID '$playerId'")
                         return@runBlocking null
                     }
 
                     val player = players.first()
-                    println("DEBUG LobbyPlayerService: Found player '${player.player_name}' with ID '${player.id}'")
+                    logger.debug(TAG, "Found player '${player.player_name}' with ID '${player.id}'")
                     return@runBlocking player
                 } catch (e: Exception) {
-                    println("DEBUG LobbyPlayerService: Error decoding player query: ${e.message}")
+                    logger.error(TAG, "Error decoding player query: ${e.message}", e)
                     return@runBlocking null
                 }
             } catch (e: Exception) {
-                println("DEBUG LobbyPlayerService: Error getting player by ID: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error getting player by ID: ${e.message}", e)
                 return@runBlocking null
             }
         }
     }
-
 
     /**
      * Data class for the response from start_game_session RPC function
@@ -289,13 +279,6 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
     /**
      * Allows a player to start a game session for their lobby
      * Only the lobby owner can start a game session
-     *
-     * @param playerId The ID of the player trying to start the game (must be lobby owner)
-     * @param lobbyId The ID of the lobby to create a game session for
-     * @param winningScore Score required to win (default: 50)
-     * @param mapLength Map length (default: 1080)
-     * @param mapHeight Map height (default: 1080)
-     * @return The created GameSession or null if there was an error
      */
     fun startGameSession(
         playerId: String,
@@ -306,7 +289,6 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
     ): Pair<GameSession?, String> {
         return runBlocking {
             try {
-                // Build the parameters for the RPC call
                 val params = buildJsonObject {
                     put("p_player_id", playerId)
                     put("p_lobby_id", lobbyId)
@@ -315,7 +297,6 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                     put("p_map_height", mapHeight)
                 }
 
-                // Call the database function using RPC
                 val response = serviceManager.db.rpc("start_game_session", params)
                 val results = response.decodeList<StartGameSessionResponse>()
 
@@ -326,7 +307,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                 val result = results.first()
 
                 if (!result.success || result.sessionId == null) {
-                    println("Failed to start game session: ${result.message}")
+                    logger.info(TAG, "Failed to start game session: ${result.message}")
                     return@runBlocking Pair(null, result.message)
                 }
 
@@ -341,10 +322,10 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                         }
 
                     val gameSession = gameSessionResponse.decodeSingle<GameSession>()
-                    println("Successfully started game session with ID: ${gameSession.id}")
+                    logger.info(TAG, "Successfully started game session with ID: ${gameSession.id}")
                     return@runBlocking Pair(gameSession, "Game session started successfully")
                 } catch (e: Exception) {
-                    println("Game session was created but couldn't be retrieved: ${e.message}")
+                    logger.info(TAG, "Game session was created but couldn't be retrieved: ${e.message}")
 
                     // Create a basic session object with the ID we know
                     val gameSession = GameSession(
@@ -359,8 +340,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                     return@runBlocking Pair(gameSession, "Game session started successfully, but details couldn't be retrieved")
                 }
             } catch (e: Exception) {
-                println("Error starting game session: ${e.message}")
-                e.printStackTrace()
+                logger.error(TAG, "Error starting game session: ${e.message}", e)
                 return@runBlocking Pair(null, "Error starting game session: ${e.message}")
             }
         }
@@ -374,7 +354,6 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                     .select {
                         filter {
                             eq("lobby_id", lobbyId)
-                            // Use isExact with null to find rows where ended_at IS NULL
                             exact("ended_at", null)  // Only active sessions
                         }
                     }
@@ -442,7 +421,7 @@ class LobbyPlayerViews(private val environmentConfig: EnvironmentConfig) {
                     false
                 }
             } catch (e: Exception) {
-                println("Error checking if player is lobby owner: ${e.message}")
+                logger.error(TAG, "Error checking if player is lobby owner: ${e.message}", e)
                 false
             }
         }
