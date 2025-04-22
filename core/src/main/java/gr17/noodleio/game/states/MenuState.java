@@ -1,6 +1,7 @@
 package gr17.noodleio.game.states;
 
 import com.badlogic.gdx.Gdx;
+import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 
 import gr17.noodleio.game.API.LobbyApi;
@@ -25,15 +26,43 @@ public class MenuState extends BaseUIState {
 
     @Override
     protected void setupUI() {
+        // Add title at the top spanning both columns
+        table.row();
         uiFactory.addTitle(table, "NOODLEIO");
-
-        playerNameField = uiFactory.addTextField(table, "Enter player alias...", 200, 40);
+        table.getCell(table.getChildren().peek()).colspan(2);
+        
+        // Create two columns using nested tables
+        Table leftColumn = new Table();
+        Table rightColumn = new Table();
+        
+        // Configure the left column
+        setupLeftColumn(leftColumn);
+        
+        // Configure the right column
+        setupRightColumn(rightColumn);
+        
+        // Add both columns to the main table with equal width
+        table.row();
+        table.add(leftColumn).width(200).pad(10);
+        table.add(rightColumn).width(200).pad(10);
+        
+        // Add status label at the bottom spanning both columns
+        table.row();
+        statusLabel = uiFactory.createStatusLabel(table);
+        table.getCell(statusLabel).colspan(2);
+    }
+    
+    private void setupLeftColumn(Table leftColumn) {
+        // Create player field in left column
+        playerNameField = uiFactory.addTextField(leftColumn, "Enter player alias...", 200, 40);
         playerNameField.setTextFieldListener((textField, c) -> {
             if (c == '\n') { // Detect Enter key
                 Gdx.input.setOnscreenKeyboardVisible(false);
             }
         });
-        uiFactory.addButton(table, "Create lobby", () -> {
+        
+        // Create lobby button in left column
+        uiFactory.addButton(leftColumn, "Create lobby", () -> {
             String name = playerNameField.getText();
             if (name == null || name.trim().isEmpty()) {
                 setStatus("Please enter a player name");
@@ -41,14 +70,20 @@ public class MenuState extends BaseUIState {
                 createLobbyWithOwner(name);
             }
         });
-
-        lobbyCodeField = uiFactory.addTextField(table, "Enter lobby code...", 200, 40);
+        uiFactory.addButton(leftColumn, "Leaderboard", () -> gsm.set(new LeaderboardState(gsm)));
+    }
+    
+    private void setupRightColumn(Table rightColumn) {
+        // Create lobby code field in right column
+        lobbyCodeField = uiFactory.addTextField(rightColumn, "Enter lobby code...", 200, 40);
         lobbyCodeField.setTextFieldListener((textField, c) -> {
             if (c == '\n') {
                 Gdx.input.setOnscreenKeyboardVisible(false);
             }
         });
-        uiFactory.addButton(table, "Join lobby", () -> {
+        
+        // Join lobby button in right column
+        uiFactory.addButton(rightColumn, "Join lobby", () -> {
             String name = playerNameField.getText();
             String code = lobbyCodeField.getText();
             if (name == null || name.trim().isEmpty()) {
@@ -59,14 +94,10 @@ public class MenuState extends BaseUIState {
                 joinLobby(name, code);
             }
         });
-
-        uiFactory.addButton(table, "Leaderboard", () -> gsm.set(new LeaderboardState(gsm)));
-
-        uiFactory.addButton(table, "Exit", () -> Gdx.app.exit());
-
-        statusLabel = uiFactory.createStatusLabel(table);
+        
+        // Add additional buttons to right column
+        uiFactory.addButton(rightColumn, "Exit", () -> Gdx.app.exit());
     }
-
 
     private void initializeApis() {
         EnvironmentConfig config = new EnvironmentConfig() {
@@ -80,8 +111,6 @@ public class MenuState extends BaseUIState {
     private void createLobbyWithOwner(String playerName) {
         setStatus("Creating lobby...");
         try {
-
-
             String result = lobbyApi.createLobbyWithOwner(playerName);
             log("LobbyApi result: " + result);
 
