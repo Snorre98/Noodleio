@@ -19,7 +19,7 @@ public class LobbyApi {
      * @return Status message including lobby and player details if successful
      */
     public String createLobbyWithOwner(String playerName) {
-        String createLobbyMessage = "";
+        String createLobbyMessage;
         try {
             Pair<Lobby, LobbyPlayer> result = lobbyService.createLobbyWithOwner(playerName, 2);
 
