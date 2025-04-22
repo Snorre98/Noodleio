@@ -7,7 +7,6 @@ import gr17.noodleio.game.API.LobbyPlayerApi;
 import gr17.noodleio.game.config.Config;
 import gr17.noodleio.game.config.EnvironmentConfig;
 import gr17.noodleio.game.states.ui.BaseUIState;
-import gr17.noodleio.game.states.ui.UIComponents;
 
 public class MenuState extends BaseUIState {
 
@@ -27,8 +26,7 @@ public class MenuState extends BaseUIState {
     protected void setupUI() {
         uiFactory.addTitle(table, "NOODLEIO");
 
-        playerNameField = UIComponents.getInstance().createTextField("Enter player alias...");
-        table.add(playerNameField).width(200).height(40).padBottom(20); table.row();
+        playerNameField = uiFactory.addTextField(table, "Enter player alias...", 200, 40);
 
         uiFactory.addButton(table, "Create lobby", () -> {
             String name = playerNameField.getText();
@@ -39,8 +37,7 @@ public class MenuState extends BaseUIState {
             }
         });
 
-        lobbyCodeField = UIComponents.getInstance().createTextField("Enter lobby code...");
-        table.add(lobbyCodeField).width(200).height(40).padBottom(20); table.row();
+        lobbyCodeField = uiFactory.addTextField(table, "Enter lobby code...", 200, 40);
 
         uiFactory.addButton(table, "Join lobby", () -> {
             String name = playerNameField.getText();
@@ -58,6 +55,7 @@ public class MenuState extends BaseUIState {
 
         statusLabel = uiFactory.createStatusLabel(table);
     }
+
 
     private void initializeApis() {
         EnvironmentConfig config = new EnvironmentConfig() {
@@ -91,7 +89,7 @@ public class MenuState extends BaseUIState {
     private void joinLobby(String playerName, String code) {
         setStatus("Joining lobby...");
         try {
-            String result = lobbyPlayerApi.joinLobby(playerName, code);
+            lobbyPlayerApi.joinLobby(playerName, code);
             LobbyState lobbyState = new LobbyState(gsm);
             lobbyState.setLobbyData(code, "Not needed", playerName);
             gsm.set(lobbyState);

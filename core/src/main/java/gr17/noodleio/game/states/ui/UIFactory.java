@@ -6,6 +6,7 @@ import com.badlogic.gdx.scenes.scene2d.Stage;
 import com.badlogic.gdx.scenes.scene2d.ui.Label;
 import com.badlogic.gdx.scenes.scene2d.ui.Table;
 import com.badlogic.gdx.scenes.scene2d.ui.TextButton;
+import com.badlogic.gdx.scenes.scene2d.ui.TextField;
 import com.badlogic.gdx.scenes.scene2d.utils.ChangeListener;
 import com.badlogic.gdx.utils.viewport.FitViewport;
 
@@ -71,6 +72,13 @@ public class UIFactory {
         table.row();
 
         return button;
+    }
+
+    public TextField addTextField(Table table, String placeholder, float width, float height) {
+        TextField field = uiComponents.createTextField(placeholder);
+        table.add(field).width(width).height(height).padBottom(DEFAULT_PADDING);
+        table.row();
+        return field;
     }
 
     public Label addLabel(Table table, String text) {

@@ -64,7 +64,7 @@ public class LobbyState extends BaseUIState {
         this.playerName = playerName;
 
         // Delay UI update until after setupUI() has run
-        Gdx.app.postRunnable(() -> updateUI());
+        Gdx.app.postRunnable(this::updateUI);
     }
 
 
@@ -98,7 +98,7 @@ public class LobbyState extends BaseUIState {
             playersLabel.setText(players);
         } catch (Exception e) {
             logError("Error refreshing players list", e);
-            playersLabel.setText("Error loading players: " + e.getMessage());
+            playersLabel.setText("Error loading players");
         }
     }
 
