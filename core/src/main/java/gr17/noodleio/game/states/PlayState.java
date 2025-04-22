@@ -83,6 +83,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private BitmapFont font;
     private SpriteBatch gameBatch;
     private SpriteBatch foodBatch;
+    private SpriteBatch uiBatch;
     private ResourceManager resources;
     private Texture backgroundTexture;
     private int mapWidth, mapHeight;
@@ -213,6 +214,12 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
     this.font.getData().setScale(2);
     this.gameBatch = new SpriteBatch();
     this.foodBatch = new SpriteBatch();
+    this.uiBatch = new SpriteBatch();
+
+    this.font.getRegion().getTexture().setFilter(
+        Texture.TextureFilter.Linear,
+        Texture.TextureFilter.Linear
+    );
 
     // Create a separate batch for background drawing
     this.backgroundBatch = new SpriteBatch();
@@ -858,7 +865,7 @@ private void renderGameElements() {
         renderGameElements();
 
         // Draw UI text
-        renderUI(sb);
+        renderUI(null);
     }
     /**
      * Renders a snake to look like a noodle instead of separate circles
@@ -1062,16 +1069,20 @@ private void renderGameElements() {
     }
 
     /**
-     * Renders UI elements using SpriteBatch.
+     * Renders UI elements using a dedicated SpriteBatch for consistent rendering across platforms.
      */
     private void renderUI(SpriteBatch sb) {
-        // UI is drawn with the passed SpriteBatch (identity projection)
-        sb.begin();
+        // Note: we'll ignore the passed SpriteBatch and use our dedicated uiBatch instead
+
+        // Configure the UI batch with identity projection (screen coordinates)
+        uiBatch.begin();
+
+        // Set the font color
         font.setColor(Color.WHITE);
 
         // Draw player list and positions
         float y = Gdx.graphics.getHeight() - 50;
-        font.draw(sb, "Players: " + players.size(), 20, y);
+        font.draw(uiBatch, "Players: " + players.size(), 20, y);
 
         // Limit to 3 players in the UI to avoid cluttering
         int playerCount = 0;
@@ -1081,7 +1092,7 @@ private void renderGameElements() {
             y -= 40;
             String pid = player.getPlayer_id().replace("\"", "");
             String isLocal = pid.equals(playerId) ? " (YOU)" : "";
-            font.draw(sb, String.format("Player %s: (%.1f, %.1f)%s",
+            font.draw(uiBatch, String.format("Player %s: (%.1f, %.1f)%s",
                 pid.substring(0, Math.min(4, pid.length())),
                 player.getX_pos(), player.getY_pos(), isLocal), 20, y);
 
@@ -1090,19 +1101,24 @@ private void renderGameElements() {
 
         // Draw cursor position
         y -= 40;
-        font.draw(sb, String.format("Cursor: (%.1f, %.1f)",
+        font.draw(uiBatch, String.format("Cursor: (%.1f, %.1f)",
             targetPosition.x, targetPosition.y), 20, y);
 
         // Draw score if local snake exists
         if (localSnake != null) {
-            font.draw(sb, "Score: " + localSnake.score,
+            font.draw(uiBatch, "Score: " + localSnake.score,
                 Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
         }
 
-        // Draw instructions
-        font.draw(sb, "Press and hold to move", 20, 40);
+        // Draw FPS counter
+        font.draw(uiBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(),
+            Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 90);
 
-        sb.end();
+        // Draw instructions
+        font.draw(uiBatch, "Press and hold to move", 20, 40);
+
+        // End the batch
+        uiBatch.end();
     }
 
     /**
@@ -1132,6 +1148,7 @@ private void renderGameElements() {
             if (font != null) font.dispose();
             if (gameBatch != null) gameBatch.dispose();
             if (foodBatch != null) foodBatch.dispose();
+            if (uiBatch != null) uiBatch.dispose();
 
             // Clean up API connections
             if (realtimeGameStateApi != null) {
