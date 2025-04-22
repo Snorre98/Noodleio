@@ -333,7 +333,7 @@ public class LobbyState extends State {
                         statusLabel.setText("Game started but couldn't get session ID");
                     }
                 } else {
-                    statusLabel.setText("Failed to start game: " + result);
+                    statusLabel.setText("Failed to start game");
                 }
             } catch (Exception e) {
                 logError("Error starting game", e);

@@ -227,7 +227,7 @@ public class LeaderboardState extends State {
             updateLeaderboardDisplay(result);
         } catch (Exception e) {
             logError("Error loading leaderboard", e);
-            statusLabel.setText("Error loading leaderboard: " + e.getMessage());
+            statusLabel.setText("Error loading leaderboard");
         }
     }
 
