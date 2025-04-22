@@ -27,7 +27,11 @@ public class LobbyApi {
                 Lobby lobby = result.getFirst();
                 LobbyPlayer player = result.getSecond();
 
-                createLobbyMessage = "Lobby created with ID: " + lobby.getId();
+                // Get the short code (first 5 characters) for easier sharing
+                String lobbyId = lobby.getId();
+                String shortCode = lobbyId.substring(0, Math.min(5, lobbyId.length()));
+
+                createLobbyMessage = "Lobby created with ID: " + lobbyId;
                 String playerMessage = "Player '" + player.getPlayer_name() + "' added as owner with ID: " + player.getId();
 
                 return createLobbyMessage + " | " + playerMessage;

@@ -58,20 +58,30 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                     logger.debug(TAG, "No existing players found with name '$playerName'")
                 }
 
-                // Check if lobby exists
-                logger.debug(TAG, "Checking if lobby exists")
+                // Find lobby by ID - now handling partial IDs
+                val actualLobbyId = findLobbyByPartialId(lobbyId)
+
+                if (actualLobbyId == null) {
+                    logger.debug(TAG, "No lobby found with ID starting with '$lobbyId'")
+                    return@runBlocking null
+                }
+
+                logger.debug(TAG, "Found lobby with ID: $actualLobbyId")
+
+                // Check if lobby is full
+                logger.debug(TAG, "Checking if lobby is full")
                 val lobbyQuery = serviceManager.db
                     .from("Lobby")
                     .select {
                         filter {
-                            eq("id", lobbyId)
+                            eq("id", actualLobbyId)
                         }
                     }
 
                 try {
                     val lobbies = lobbyQuery.decodeList<Lobby>()
                     if (lobbies.isEmpty()) {
-                        logger.debug(TAG, "Lobby with ID '$lobbyId' does not exist")
+                        logger.debug(TAG, "Lobby with ID '$actualLobbyId' does not exist")
                         return@runBlocking null
                     }
 
@@ -83,7 +93,7 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                         .from("LobbyPlayer")
                         .select {
                             filter {
-                                eq("lobby_id", lobbyId)
+                                eq("lobby_id", actualLobbyId)
                             }
                         }
                         .decodeList<LobbyPlayer>()
@@ -104,7 +114,7 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                 try {
                     val jsonData = buildJsonObject {
                         put("player_name", playerName)
-                        put("lobby_id", lobbyId)
+                        put("lobby_id", actualLobbyId)
                     }
 
                     logger.debug(TAG, "Inserting player with data: $jsonData")
@@ -125,7 +135,7 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                             .select {
                                 filter {
                                     eq("player_name", playerName)
-                                    eq("lobby_id", lobbyId)
+                                    eq("lobby_id", actualLobbyId)
                                 }
                             }
 
@@ -140,7 +150,7 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
                         return@runBlocking LobbyPlayer(
                             id = UUID.randomUUID().toString(),
                             player_name = playerName,
-                            lobby_id = lobbyId,
+                            lobby_id = actualLobbyId,
                             joined_at = Clock.System.now()
                         )
                     }
@@ -156,26 +166,77 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
     }
 
     /**
-     * Gets all players in a lobby
-     * @param lobbyId The ID of the lobby
-     * @return List of LobbyPlayer objects or empty list if none found or error
+     * Find a lobby by a partial ID (like the first 5 characters)
+     * @param partialId The partial ID to search for
+     * @return The full lobby ID if found, null otherwise
      */
+    private suspend fun findLobbyByPartialId(partialId: String): String? {
+        logger.debug(TAG, "Finding lobby with partial ID: $partialId")
+
+        try {
+            // If the partial ID is actually a full UUID, just return it
+            if (isValidUUID(partialId)) {
+                return partialId
+            }
+
+            // Query for all lobbies
+            val response = serviceManager.db
+                .from("Lobby")
+                .select()
+
+            val lobbies = response.decodeList<Lobby>()
+
+            // Search for lobbies with IDs starting with the partial ID
+            for (lobby in lobbies) {
+                if (lobby.id.startsWith(partialId, ignoreCase = true)) {
+                    logger.debug(TAG, "Found matching lobby with ID: ${lobby.id}")
+                    return lobby.id
+                }
+            }
+
+            logger.debug(TAG, "No lobby found with ID starting with '$partialId'")
+            return null
+        } catch (e: Exception) {
+            logger.error(TAG, "Error finding lobby by partial ID: ${e.message}", e)
+            return null
+        }
+    }
+
+    /**
+     * Check if a string is a valid UUID
+     * @param possibleUUID The string to check
+     * @return True if the string is a valid UUID, false otherwise
+     */
+    private fun isValidUUID(possibleUUID: String): Boolean {
+        return try {
+            UUID.fromString(possibleUUID)
+            true
+        } catch (e: Exception) {
+            false
+        }
+    }
+
+    // Rest of the methods remain unchanged
+
     fun getPlayersInLobby(lobbyId: String): List<LobbyPlayer> {
         logger.debug(TAG, "Getting players in lobby $lobbyId")
 
         return runBlocking {
             try {
+                // First, check if this is a partial ID
+                val actualLobbyId = findLobbyByPartialId(lobbyId) ?: lobbyId
+
                 val response = serviceManager.db
                     .from("LobbyPlayer")
                     .select {
                         filter {
-                            eq("lobby_id", lobbyId)
+                            eq("lobby_id", actualLobbyId)
                         }
                     }
 
                 try {
                     val players = response.decodeList<LobbyPlayer>()
-                    logger.debug(TAG, "Found ${players.size} players in lobby '$lobbyId'")
+                    logger.debug(TAG, "Found ${players.size} players in lobby '$actualLobbyId'")
                     return@runBlocking players
                 } catch (e: Exception) {
                     logger.error(TAG, "Error decoding players: ${e.message}", e)
@@ -188,11 +249,7 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
         }
     }
 
-    /**
-     * Removes a player from a lobby
-     * @param playerId The ID of the player to remove
-     * @return True if successful, false otherwise
-     */
+    // The rest of the class implementation remains unchanged
     fun leaveLobby(playerId: String): Boolean {
         logger.debug(TAG, "Removing player $playerId from lobby")
 
@@ -226,11 +283,6 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
         }
     }
 
-    /**
-     * Gets a player by their ID
-     * @param playerId The ID of the player to retrieve
-     * @return The LobbyPlayer object or null if not found
-     */
     fun getPlayerById(playerId: String): LobbyPlayer? {
         logger.debug(TAG, "Getting player by ID $playerId")
 
@@ -265,9 +317,6 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
         }
     }
 
-    /**
-     * Data class for the response from start_game_session RPC function
-     */
     @Serializable
     data class StartGameSessionResponse(
         @SerialName("session_id") val sessionId: String?,
@@ -276,10 +325,6 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
         @SerialName("message") val message: String
     )
 
-    /**
-     * Allows a player to start a game session for their lobby
-     * Only the lobby owner can start a game session
-     */
     fun startGameSession(
         playerId: String,
         lobbyId: String,
@@ -289,9 +334,12 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
     ): Pair<GameSession?, String> {
         return runBlocking {
             try {
+                // First, check if this is a partial ID
+                val actualLobbyId = findLobbyByPartialId(lobbyId) ?: lobbyId
+
                 val params = buildJsonObject {
                     put("p_player_id", playerId)
-                    put("p_lobby_id", lobbyId)
+                    put("p_lobby_id", actualLobbyId)
                     put("p_winning_score", winningScore)
                     put("p_map_length", mapLength)
                     put("p_map_height", mapHeight)
@@ -349,11 +397,14 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
     fun checkActiveGameSession(lobbyId: String): String {
         return runBlocking {
             try {
+                // First, check if this is a partial ID
+                val actualLobbyId = findLobbyByPartialId(lobbyId) ?: lobbyId
+
                 val response = serviceManager.db
                     .from("GameSession")
                     .select {
                         filter {
-                            eq("lobby_id", lobbyId)
+                            eq("lobby_id", actualLobbyId)
                             exact("ended_at", null)  // Only active sessions
                         }
                     }
@@ -405,11 +456,14 @@ class LobbyPlayerService(environmentConfig: EnvironmentConfig) {
     fun isLobbyOwner(playerId: String, lobbyId: String): Boolean {
         return runBlocking {
             try {
+                // First, check if this is a partial ID
+                val actualLobbyId = findLobbyByPartialId(lobbyId) ?: lobbyId
+
                 val lobbyResponse = serviceManager.db
                     .from("Lobby")
                     .select {
                         filter {
-                            eq("id", lobbyId)
+                            eq("id", actualLobbyId)
                         }
                     }
 
