@@ -33,13 +33,14 @@ import gr17.noodleio.game.model.PlayerResult;
 import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.models.PlayerGameState;
 import gr17.noodleio.game.util.ResourceManager;
+import gr17.noodleio.game.API.LobbyPlayerApi;
 
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Multiplayer game state that incorporates snake mechanics.
- * Uses cursor-based movement and realtime synchronization with other players.
+ * Multiplayer game state that incorporates snake mechanics. Uses cursor-based
+ * movement and realtime synchronization with other players.
  */
 public class PlayState extends State implements RealtimeGameStateApi.GameStateCallback {
 
@@ -90,6 +91,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private int mapWidth, mapHeight;
     private SpriteBatch backgroundBatch;
     private Rectangle exitButton;
+    private ArrayList<Vector2> noodlePoints = new ArrayList<>();
+    private Vector2 tempVec = new Vector2();
+    private Color[] segmentColors = new Color[30];
 
     // Snake-related fields
     private Snake localSnake;
@@ -101,6 +105,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
      * Simple class to represent other players' snakes with head and body
      */
     private class OtherPlayerSnake {
+
         public Vector2 headPosition = new Vector2();
         public ArrayList<Vector2> bodyPositions = new ArrayList<>();
         public Vector2 previousPosition = new Vector2();
@@ -112,7 +117,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
             // Initialize body segments behind the head
             for (int i = 0; i < OTHER_PLAYER_SNAKE_SEGMENTS; i++) {
-                bodyPositions.add(new Vector2(x - (i+1) * snakeSize, y));
+                bodyPositions.add(new Vector2(x - (i + 1) * snakeSize, y));
             }
         }
 
@@ -121,7 +126,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             Vector2 direction = new Vector2(x, y).sub(headPosition);
 
             // Skip update if no movement
-            if (direction.len() < 0.01f) return;
+            if (direction.len() < 0.01f) {
+                return;
+            }
 
             // Save previous position before updating
             previousPosition.set(headPosition);
@@ -149,7 +156,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
 
         public void render(ShapeRenderer shapeRenderer) {
-            if (bodyPositions.size() < 1) return;
+            if (bodyPositions.size() < 1) {
+                return;
+            }
 
             ArrayList<Vector2> noodlePoints = new ArrayList<>();
 
@@ -187,200 +196,211 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         }
     }
 
-   /**
- * Creates a new play state.
- *
- * @param gsm Game state manager
- * @param sessionId ID of the game session
- * @param playerId ID of the local player
- * @param playerName Name of the local player
- * @param rm Resource manager for shared resources
- */
-public PlayState(GameStateManager gsm, String sessionId, String playerId, String playerName, ResourceManager rm) {
-    super(gsm);
+    /**
+     * Creates a new play state.
+     *
+     * @param gsm Game state manager
+     * @param sessionId ID of the game session
+     * @param playerId ID of the local player
+     * @param playerName Name of the local player
+     * @param rm Resource manager for shared resources
+     */
+    public PlayState(GameStateManager gsm, String sessionId, String playerId, String playerName, ResourceManager rm) {
+        super(gsm);
 
-    // Store player info
-    this.sessionId = sessionId;
-    this.playerId = playerId;
-    this.playerName = playerName;
-    this.resources = rm;  // Store the resource manager
+        for (int i = 0; i < segmentColors.length; i++) {
+            segmentColors[i] = new Color();
+        }
 
-    // Set up camera
-    this.cam = new OrthographicCamera();
-    this.cam.setToOrtho(false, Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
+        // Store player info
+        this.sessionId = sessionId;
+        this.playerId = playerId;
+        this.playerName = playerName;
+        this.resources = rm;  // Store the resource manager
 
-    // Initialize graphics resources
-    this.shapes = new ShapeRenderer();
-    this.shapes.setAutoShapeType(true);
-    this.font = new BitmapFont();
-    this.font.getData().setScale(2);
-    this.gameBatch = new SpriteBatch();
-    this.foodBatch = new SpriteBatch();
-    this.uiBatch = new SpriteBatch();
-    this.exitButton = new Rectangle(20, Gdx.graphics.getHeight() - 40, 100, 30);
+        // Set up camera
+        this.cam = new OrthographicCamera();
+        this.cam.setToOrtho(false, Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
 
-    this.font.getRegion().getTexture().setFilter(
-        Texture.TextureFilter.Linear,
-        Texture.TextureFilter.Linear
-    );
+        // Initialize graphics resources
+        this.shapes = new ShapeRenderer();
+        this.shapes.setAutoShapeType(true);
+        this.font = new BitmapFont();
+        this.font.getData().setScale(2);
+        this.gameBatch = new SpriteBatch();
+        this.foodBatch = new SpriteBatch();
+        this.uiBatch = new SpriteBatch();
+        this.exitButton = new Rectangle(20, Gdx.graphics.getHeight() - 40, 100, 30);
 
-    // Create a separate batch for background drawing
-    this.backgroundBatch = new SpriteBatch();
+        this.font.getRegion().getTexture().setFilter(
+            Texture.TextureFilter.Linear,
+            Texture.TextureFilter.Linear
+        );
 
-    // Get the background texture from resources
-    this.backgroundTexture = resources.getBackgroundTexture();
+        // Create a separate batch for background drawing
+        this.backgroundBatch = new SpriteBatch();
 
-    // Set initial map dimensions
-    this.mapWidth = 1080;
-    this.mapHeight = 1080;
+        // Get the background texture from resources
+        this.backgroundTexture = resources.getBackgroundTexture();
 
-    // Create environment configuration
-    EnvironmentConfig config = new EnvironmentConfig() {
-        @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
-        @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
-    };
+        // Set initial map dimensions
+        this.mapWidth = 1080;
+        this.mapHeight = 1080;
 
-    // Initialize APIs and connect to game session
-    try {
-        this.realtimeGameStateApi = new RealtimeGameStateApi(config);
-        this.playerGameStateApi = new PlayerGameStateApi(config);
+        // Create environment configuration
+        EnvironmentConfig config = new EnvironmentConfig() {
+            @Override
+            public String getSupabaseUrl() {
+                return Config.getSupabaseUrl();
+            }
 
-        // Register for callbacks and connect
-        this.realtimeGameStateApi.addCallback(this);
-        String result = this.realtimeGameStateApi.connect(sessionId, playerId);
-        log("Connection result: " + result);
-    } catch (Exception e) {
-        logError("Error initializing game state APIs", e);
+            @Override
+            public String getSupabaseKey() {
+                return Config.getSupabaseKey();
+            }
+        };
+
+        // Initialize APIs and connect to game session
+        try {
+            this.realtimeGameStateApi = new RealtimeGameStateApi(config);
+            this.playerGameStateApi = new PlayerGameStateApi(config);
+
+            // Register for callbacks and connect
+            this.realtimeGameStateApi.addCallback(this);
+            String result = this.realtimeGameStateApi.connect(sessionId, playerId);
+            log("Connection result: " + result);
+        } catch (Exception e) {
+            logError("Error initializing game state APIs", e);
+        }
+
+        // Initialize snake-related components
+        initializeSnakeComponents();
     }
 
-    // Initialize snake-related components
-    initializeSnakeComponents();
-}
+    /**
+     * Spawn foods at random positions within the map boundary
+     */
+    private void spawnFoods() {
+        foods.clear();
 
-/**
- * Spawn foods at random positions within the map boundary
- */
-private void spawnFoods() {
-    foods.clear();
+        // Get actual map dimensions
+        int actualMapWidth = 1080;
+        int actualMapHeight = 1080;
+        if (currentSession != null) {
+            actualMapWidth = currentSession.getMap_length();
+            actualMapHeight = currentSession.getMap_height();
+        }
 
-    // Get actual map dimensions
-    int actualMapWidth = 1080;
-    int actualMapHeight = 1080;
-    if (currentSession != null) {
-        actualMapWidth = currentSession.getMap_length();
-        actualMapHeight = currentSession.getMap_height();
-    }
+        for (int i = 0; i < 50; i++) {
+            // Place food within map bounds (in game coordinates)
+            // Add a small margin (20 units) to keep food away from edges
+            int margin = 20;
+            int x = margin + (int) (Math.random() * (actualMapWidth - 2 * margin));
+            int y = margin + (int) (Math.random() * (actualMapHeight - 2 * margin));
 
-    for (int i = 0; i < 50; i++) {
-        // Place food within map bounds (in game coordinates)
-        // Add a small margin (20 units) to keep food away from edges
-        int margin = 20;
-        int x = margin + (int)(Math.random() * (actualMapWidth - 2*margin));
-        int y = margin + (int)(Math.random() * (actualMapHeight - 2*margin));
+            // Convert to screen coordinates for rendering
+            Vector2 screenPos = gameToScreenCoordinates(new Vector2(x, y));
 
-        // Convert to screen coordinates for rendering
-        Vector2 screenPos = gameToScreenCoordinates(new Vector2(x, y));
+            // Get a random food texture (50/50 chance between wheat and egg)
+            Texture foodTexture = resources.getRandomFoodTexture();
 
-        // Get a random food texture (50/50 chance between wheat and egg)
-        Texture foodTexture = resources.getRandomFoodTexture();
-
-        // Create a food object with the selected texture
-        Food food = new Food(screenPos);
-        food.texture = foodTexture;
-        foods.add(food);
-    }
-}
-
-/**
- * Spawn power-ups at specific positions within the map boundary
- */
-private void spawnPowerUps() {
-    powerUps.clear();
-
-    // Get actual map dimensions
-    int actualMapWidth = 1080;
-    int actualMapHeight = 1080;
-    if (currentSession != null) {
-        actualMapWidth = currentSession.getMap_length();
-        actualMapHeight = currentSession.getMap_height();
-    }
-
-    // Place power-ups at evenly distributed positions
-    // Convert game coordinates to screen coordinates
-    Vector2 speedPos = gameToScreenCoordinates(new Vector2(actualMapWidth/4, actualMapHeight/4));
-    SpeedBoost speedBoost = new SpeedBoost(speedPos, resources.getSpeedBoostTexture());
-    powerUps.add(speedBoost);
-
-    Vector2 magnetPos = gameToScreenCoordinates(new Vector2(actualMapWidth*3/4, actualMapHeight*3/4));
-    MagnetBoost magnetBoost = new MagnetBoost(magnetPos, resources.getMagnetBoostTexture());
-    powerUps.add(magnetBoost);
-}
-
-/**
- * Renders game elements using SpriteBatch and ShapeRenderer.
- */
-private void renderGameElements() {
-    // Draw map boundary
-    renderMapBoundary();
-
-    // Begin the food sprite batch with the camera's projection matrix
-    foodBatch.begin();
-    foodBatch.setProjectionMatrix(cam.combined);
-
-    // Draw all foods
-    for (Food f : foods) {
-        if (!f.isEat && f.texture != null) {
-            // Draw the food texture
-            float width = f.size * 2; // Diameter
-            float height = f.size * 2;
-            foodBatch.draw(f.texture,
-                f.pos.x - width/2, // center the texture on the position
-                f.pos.y - height/2,
-                width, height);
+            // Create a food object with the selected texture
+            Food food = new Food(screenPos);
+            food.texture = foodTexture;
+            foods.add(food);
         }
     }
 
-    // Draw all power-ups
-    for (PowerUp p : powerUps) {
-        if (!p.isEat && p.texture != null) {
-            float width = p.size * 2;
-            float height = p.size * 2;
-            foodBatch.draw(p.texture,
-                p.pos.x - width/2,
-                p.pos.y - height/2,
-                width, height);
+    /**
+     * Spawn power-ups at specific positions within the map boundary
+     */
+    private void spawnPowerUps() {
+        powerUps.clear();
+
+        // Get actual map dimensions
+        int actualMapWidth = 1080;
+        int actualMapHeight = 1080;
+        if (currentSession != null) {
+            actualMapWidth = currentSession.getMap_length();
+            actualMapHeight = currentSession.getMap_height();
         }
+
+        // Place power-ups at evenly distributed positions
+        // Convert game coordinates to screen coordinates
+        Vector2 speedPos = gameToScreenCoordinates(new Vector2(actualMapWidth / 4, actualMapHeight / 4));
+        SpeedBoost speedBoost = new SpeedBoost(speedPos, resources.getSpeedBoostTexture());
+        powerUps.add(speedBoost);
+
+        Vector2 magnetPos = gameToScreenCoordinates(new Vector2(actualMapWidth * 3 / 4, actualMapHeight * 3 / 4));
+        MagnetBoost magnetBoost = new MagnetBoost(magnetPos, resources.getMagnetBoostTexture());
+        powerUps.add(magnetBoost);
     }
 
-    foodBatch.end();
+    /**
+     * Renders game elements using SpriteBatch and ShapeRenderer.
+     */
+    private void renderGameElements() {
+        // Draw map boundary
+        renderMapBoundary();
 
-    shapes.begin(ShapeRenderer.ShapeType.Filled);
+        // Begin the food sprite batch with the camera's projection matrix
+        foodBatch.begin();
+        foodBatch.setProjectionMatrix(cam.combined);
 
-    // Draw cursor target if movement is active
-    if (isMovementActive) {
-        shapes.setColor(CURSOR_TARGET_COLOR);
-        Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
-        cam.unproject(mousePos);
-        shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
+        // Draw all foods
+        for (Food f : foods) {
+            if (!f.isEat && f.texture != null) {
+                // Draw the food texture
+                float width = f.size * 2; // Diameter
+                float height = f.size * 2;
+                foodBatch.draw(f.texture,
+                        f.pos.x - width / 2, // center the texture on the position
+                        f.pos.y - height / 2,
+                        width, height);
+            }
+        }
 
-        // Draw a line from player to target
+        // Draw all power-ups
+        for (PowerUp p : powerUps) {
+            if (!p.isEat && p.texture != null) {
+                float width = p.size * 2;
+                float height = p.size * 2;
+                foodBatch.draw(p.texture,
+                        p.pos.x - width / 2,
+                        p.pos.y - height / 2,
+                        width, height);
+            }
+        }
+
+        foodBatch.end();
+
+        shapes.begin(ShapeRenderer.ShapeType.Filled);
+
+        // Draw cursor target if movement is active
+        if (isMovementActive) {
+            shapes.setColor(CURSOR_TARGET_COLOR);
+            Vector3 mousePos = new Vector3(Gdx.input.getX(), Gdx.input.getY(), 0);
+            cam.unproject(mousePos);
+            shapes.circle(mousePos.x, mousePos.y, CURSOR_TARGET_SIZE);
+
+            // Draw a line from player to target
+            if (localSnake != null) {
+                shapes.setColor(Color.WHITE);
+                shapes.rectLine(localSnake.pos.x, localSnake.pos.y,
+                        mousePos.x, mousePos.y, 1);
+            }
+        }
+
+        shapes.end();
+
+        // Render other player snakes
+        renderOtherPlayerSnakes();
+
+        // Render local snake if it exists
         if (localSnake != null) {
-            shapes.setColor(Color.WHITE);
-            shapes.rectLine(localSnake.pos.x, localSnake.pos.y,
-                mousePos.x, mousePos.y, 1);
+            renderSnake(localSnake, shapes);
         }
     }
-
-    shapes.end();
-
-    // Render other player snakes
-    renderOtherPlayerSnakes();
-
-    // Render local snake if it exists
-    if (localSnake != null) {
-        renderSnake(localSnake, shapes);
-    }
-}
 
     /**
      * Initialize snake components (local player snake, foods, power-ups)
@@ -390,7 +410,7 @@ private void renderGameElements() {
         localSnake = new Snake();
 
         // Position snake in the center initially
-        localSnake.pos.set(Gdx.graphics.getWidth()/2, Gdx.graphics.getHeight()/2);
+        localSnake.pos.set(Gdx.graphics.getWidth() / 2, Gdx.graphics.getHeight() / 2);
         localSnake.snakeHead.pos.set(localSnake.pos);
 
         // Initialize client predicted position to match snake's starting position
@@ -412,7 +432,7 @@ private void renderGameElements() {
         // Initialize body segments properly
         for (int i = 1; i < localSnake.body.size(); i++) {
             BodyPart segment = localSnake.body.get(i);
-            BodyPart previous = localSnake.body.get(i-1);
+            BodyPart previous = localSnake.body.get(i - 1);
             // Position segments properly behind each other
             float distance = segment.size + 8;
             segment.pos.set(previous.pos.x - distance, previous.pos.y);
@@ -549,7 +569,9 @@ private void renderGameElements() {
             String pid = player.getPlayer_id().replace("\"", "");
 
             // Skip local player
-            if (pid.equals(playerId)) continue;
+            if (pid.equals(playerId)) {
+                continue;
+            }
 
             // Convert from game coordinates to screen coordinates
             Vector2 screenPos = gameToScreenCoordinates(
@@ -603,8 +625,7 @@ private void renderGameElements() {
             cam.position.x = screenPos.x;
             cam.position.y = screenPos.y;
             cam.update();
-        }
-        // Fallback to server position if client position not initialized
+        } // Fallback to server position if client position not initialized
         else if (getLocalPlayerState() != null) {
             PlayerGameState localPlayer = getLocalPlayerState();
             Vector2 screenPos = gameToScreenCoordinates(
@@ -612,8 +633,7 @@ private void renderGameElements() {
             cam.position.x = screenPos.x;
             cam.position.y = screenPos.y;
             cam.update();
-        }
-        // Final fallback - use the local snake's position directly
+        } // Final fallback - use the local snake's position directly
         else if (localSnake != null) {
             // Use the snake's position directly as fallback
             cam.position.x = localSnake.pos.x;
@@ -626,13 +646,17 @@ private void renderGameElements() {
      * Update interactions with food items
      */
     private void updateFoodInteractions() {
-        if (localSnake == null) return;
+        if (localSnake == null) {
+            return;
+        }
 
         for (int i = 0; i < foods.size(); i++) {
             Food f = foods.get(i);
 
             // Skip already eaten food
-            if (f.isEat) continue;
+            if (f.isEat) {
+                continue;
+            }
 
             // Check collision with snake
             if (localSnake.checkFoodCollision(f)) {
@@ -640,8 +664,8 @@ private void renderGameElements() {
             }
 
             // Handle magnet attraction - only if needed
-            if (localSnake.attractFood && !f.isEat &&
-                localSnake.snakeHead.attractFoodDetection(f.collisionShape)) {
+            if (localSnake.attractFood && !f.isEat
+                    && localSnake.snakeHead.attractFoodDetection(f.collisionShape)) {
                 f.getAttracted(localSnake.pos);
             }
 
@@ -654,7 +678,9 @@ private void renderGameElements() {
      * Update interactions with power-ups
      */
     private void updatePowerUpInteractions() {
-        if (localSnake == null) return;
+        if (localSnake == null) {
+            return;
+        }
 
         for (PowerUp p : powerUps) {
             if (localSnake.checkFoodCollision(p)) {
@@ -685,11 +711,15 @@ private void renderGameElements() {
 
     private void handleLocalMovement(float dt) {
         // Skip if no mouse input
-        if (!isMovementActive) return;
+        if (!isMovementActive) {
+            return;
+        }
 
         // Get current server position
         PlayerGameState localPlayer = getLocalPlayerState();
-        if (localPlayer == null) return;
+        if (localPlayer == null) {
+            return;
+        }
 
         // Initialize positions if needed
         if (serverConfirmedPosition.isZero()) {
@@ -812,6 +842,7 @@ private void renderGameElements() {
 
         return new Vector2(screenX, screenY);
     }
+
     /**
      * Renders the background to fill exactly the map boundary
      */
@@ -841,6 +872,7 @@ private void renderGameElements() {
         );
         backgroundBatch.end();
     }
+
     /**
      * Renders the game state.
      *
@@ -877,36 +909,50 @@ private void renderGameElements() {
         // Draw UI text
         renderUI();
     }
+
     /**
      * Renders a snake to look like a noodle instead of separate circles
      */
     private void renderSnake(Snake snake, ShapeRenderer shapeRenderer) {
-        if (snake.body.size() < 2) return; // Need at least head and one body part
+        if (snake.body.size() < 2) {
+            return; // Need at least head and one body part
+        }
+        // Reuse the noodlePoints list instead of creating a new one
+        noodlePoints.clear();
 
-        // First collect all snake points (head and body)
-        ArrayList<Vector2> noodlePoints = new ArrayList<>();
+        // Add head using existing Vector2 objects
+        noodlePoints.add(snake.snakeHead.pos);
 
-        // Add head
-        noodlePoints.add(new Vector2(snake.snakeHead.pos.x, snake.snakeHead.pos.y));
-
-        // Add body parts
+        // Add body parts - directly use their position objects
         for (BodyPart bp : snake.body) {
-            noodlePoints.add(new Vector2(bp.pos.x, bp.pos.y));
+            noodlePoints.add(bp.pos);
         }
 
         // Set noodle thickness based on head size
         float noodleThickness = snake.snakeHead.size * 1.8f;
 
-        // Create slight color variations for noodle segments
+        // Create slight color variations for noodle segments - reuse color objects
         Color baseColor = snake.snakeHead.color;
-        Color[] segmentColors = new Color[noodlePoints.size() - 1];
-        for (int i = 0; i < segmentColors.length; i++) {
-            float variation = 0.1f * ((float)Math.sin(i * 0.5f + System.currentTimeMillis() / 1000.0) + 1.0f);
-            segmentColors[i] = new Color(
-                baseColor.r - variation * 0.1f,
-                baseColor.g - variation * 0.1f,
-                baseColor.b + variation * 0.1f,
-                baseColor.a
+        float timeOffset = System.currentTimeMillis() / 1000.0f;
+
+        // Ensure we have enough pre-allocated colors
+        while (segmentColors.length < noodlePoints.size() - 1) {
+            Color[] newArray = new Color[segmentColors.length * 2];
+            System.arraycopy(segmentColors, 0, newArray, 0, segmentColors.length);
+            for (int i = segmentColors.length; i < newArray.length; i++) {
+                newArray[i] = new Color();
+            }
+            segmentColors = newArray;
+        }
+
+        // Set colors without creating new objects
+        for (int i = 0; i < noodlePoints.size() - 1; i++) {
+            float variation = 0.1f * ((float) Math.sin(i * 0.5f + timeOffset) + 1.0f);
+            segmentColors[i].set(
+                    baseColor.r - variation * 0.1f,
+                    baseColor.g - variation * 0.1f,
+                    baseColor.b + variation * 0.1f,
+                    baseColor.a
             );
         }
 
@@ -933,7 +979,7 @@ private void renderGameElements() {
             if (i == 0) {
                 shapeRenderer.setColor(baseColor);
             } else {
-                shapeRenderer.setColor(segmentColors[i-1]);
+                shapeRenderer.setColor(segmentColors[i - 1]);
             }
 
             // Draw a circle at each joint
@@ -942,50 +988,46 @@ private void renderGameElements() {
 
         shapeRenderer.end();
 
+        // Rest of the eye drawing logic remains the same...
         // Draw eyes on the head to give it character
         shapeRenderer.begin(ShapeRenderer.ShapeType.Filled);
         shapeRenderer.setColor(Color.WHITE);
 
         // Calculate eye positions based on head position and direction
         Vector2 headPos = snake.snakeHead.pos;
-        Vector2 direction = new Vector2();
+        tempVec.setZero(); // Reuse tempVec for direction
 
         // If we have at least one body segment, determine direction
         if (snake.body.size() > 1) {
             Vector2 bodyPos = snake.body.get(1).pos;
-            direction.set(headPos).sub(bodyPos).nor();
+            tempVec.set(headPos).sub(bodyPos).nor();
         } else {
-            direction.set(1, 0); // Default right direction
+            tempVec.set(1, 0); // Default right direction
         }
 
         // Calculate perpendicular vector for eye positioning
-        Vector2 perpendicular = new Vector2(-direction.y, direction.x);
+        float perpX = -tempVec.y;
+        float perpY = tempVec.x;
 
         // Position eyes on the head
         float eyeOffset = snake.snakeHead.size * 0.5f;
         float eyeForwardOffset = snake.snakeHead.size * 0.5f;
         float eyeSize = snake.snakeHead.size * 0.3f;
 
-        Vector2 leftEye = new Vector2(headPos).add(
-            new Vector2(direction).scl(eyeForwardOffset).add(
-                new Vector2(perpendicular).scl(eyeOffset)
-            )
-        );
+        float leftEyeX = headPos.x + tempVec.x * eyeForwardOffset + perpX * eyeOffset;
+        float leftEyeY = headPos.y + tempVec.y * eyeForwardOffset + perpY * eyeOffset;
 
-        Vector2 rightEye = new Vector2(headPos).add(
-            new Vector2(direction).scl(eyeForwardOffset).add(
-                new Vector2(perpendicular).scl(-eyeOffset)
-            )
-        );
+        float rightEyeX = headPos.x + tempVec.x * eyeForwardOffset - perpX * eyeOffset;
+        float rightEyeY = headPos.y + tempVec.y * eyeForwardOffset - perpY * eyeOffset;
 
         // Draw the white parts of eyes
-        shapeRenderer.circle(leftEye.x, leftEye.y, eyeSize, 10);
-        shapeRenderer.circle(rightEye.x, rightEye.y, eyeSize, 10);
+        shapeRenderer.circle(leftEyeX, leftEyeY, eyeSize, 10);
+        shapeRenderer.circle(rightEyeX, rightEyeY, eyeSize, 10);
 
         // Draw the pupils
         shapeRenderer.setColor(Color.BLACK);
-        shapeRenderer.circle(leftEye.x, leftEye.y, eyeSize * 0.6f, 8);
-        shapeRenderer.circle(rightEye.x, rightEye.y, eyeSize * 0.6f, 8);
+        shapeRenderer.circle(leftEyeX, leftEyeY, eyeSize * 0.6f, 8);
+        shapeRenderer.circle(rightEyeX, rightEyeY, eyeSize * 0.6f, 8);
 
         shapeRenderer.end();
 
@@ -1156,7 +1198,6 @@ private void renderGameElements() {
     }
 
     // RealtimeGameStateApi.GameStateCallback implementation
-
     /**
      * Called when a player's state changes.
      */
@@ -1195,6 +1236,32 @@ private void renderGameElements() {
     @Override
     public void onGameOver() {
         log("Game over received");
+
+        // Delete the lobby immediately before creating the Runnable
+        if (currentSession != null) {
+            try {
+                String lobbyId = currentSession.getLobby_id();
+                if (lobbyId != null && !lobbyId.isEmpty()) {
+                    // Create environment config
+                    EnvironmentConfig config = new EnvironmentConfig() {
+                        @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
+                        @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
+                    };
+
+                    // Create API and delete lobby
+                    LobbyPlayerApi lobbyPlayerApi = new LobbyPlayerApi(config);
+                    log("Game over: Deleting lobby with ID: " + lobbyId);
+                    String result = lobbyPlayerApi.deleteLobby(lobbyId);
+                    log("Game over: Lobby deletion result: " + result);
+                } else {
+                    log("Game over: Cannot delete lobby - lobby ID is null or empty");
+                }
+            } catch (Exception e) {
+                logError("Game over: Error deleting lobby", e);
+            }
+        } else {
+            log("Game over: Cannot delete lobby - currentSession is null");
+        }
 
         // Create a copy of the players to avoid concurrent modification
         final Map<String, PlayerGameState> playersCopy = new HashMap<>(players);
