@@ -14,6 +14,7 @@ import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.g2d.BitmapFont;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
@@ -84,10 +85,12 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     private BitmapFont font;
     private SpriteBatch gameBatch;
     private SpriteBatch foodBatch;
+    private SpriteBatch uiBatch;
     private ResourceManager resources;
     private Texture backgroundTexture;
     private int mapWidth, mapHeight;
     private SpriteBatch backgroundBatch;
+    private Rectangle exitButton;
     private ArrayList<Vector2> noodlePoints = new ArrayList<>();
     private Vector2 tempVec = new Vector2();
     private Color[] segmentColors = new Color[30];
@@ -226,6 +229,13 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         this.font.getData().setScale(2);
         this.gameBatch = new SpriteBatch();
         this.foodBatch = new SpriteBatch();
+        this.uiBatch = new SpriteBatch();
+        this.exitButton = new Rectangle(20, Gdx.graphics.getHeight() - 40, 100, 30);
+
+        this.font.getRegion().getTexture().setFilter(
+            Texture.TextureFilter.Linear,
+            Texture.TextureFilter.Linear
+        );
 
         // Create a separate batch for background drawing
         this.backgroundBatch = new SpriteBatch();
@@ -432,7 +442,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         if (localSnake != null) {
             // Set a default direction (right) if no movement yet
             Vector3 defaultDirection = new Vector3(
-                    localSnake.pos.x + 100, localSnake.pos.y, 0);
+                localSnake.pos.x + 100, localSnake.pos.y, 0);
             localSnake.update(defaultDirection);
         }
     }
@@ -462,6 +472,13 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         if (Gdx.input.isKeyJustPressed(Input.Keys.ESCAPE)) {
             disconnectAndReturnToMenu();
         }
+
+        if (Gdx.input.justTouched()) {
+            Vector2 touch = new Vector2(Gdx.input.getX(), Gdx.graphics.getHeight() - Gdx.input.getY());
+            if (exitButton.contains(touch.x, touch.y)) {
+                disconnectAndReturnToMenu();
+            }
+        }
     }
 
     /**
@@ -474,7 +491,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         // Process input
         handleInput();
 
-        float cappedDt = Math.min(dt, 1 / 30f); // Cap at 30 FPS minimum
+        float cappedDt = Math.min(dt, 1/30f); // Cap at 30 FPS minimum
 
         // If no movement yet but we're just starting, initialize positions
         if (!isMovementActive && serverConfirmedPosition.isZero() && clientPredictedPosition.isZero()) {
@@ -558,7 +575,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
 
             // Convert from game coordinates to screen coordinates
             Vector2 screenPos = gameToScreenCoordinates(
-                    new Vector2(player.getX_pos(), player.getY_pos()));
+                new Vector2(player.getX_pos(), player.getY_pos()));
 
             // Create or update other player snake
             OtherPlayerSnake otherSnake = otherPlayerSnakes.get(pid);
@@ -612,7 +629,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         else if (getLocalPlayerState() != null) {
             PlayerGameState localPlayer = getLocalPlayerState();
             Vector2 screenPos = gameToScreenCoordinates(
-                    new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
+                new Vector2(localPlayer.getX_pos(), localPlayer.getY_pos()));
             cam.position.x = screenPos.x;
             cam.position.y = screenPos.y;
             cam.update();
@@ -726,8 +743,8 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
             // Increased speeds for more responsive movement
             float speed = hasSpeedBoost ? 150.0f : 100.0f; // Much higher units per second
             clientPredictedPosition.add(
-                    direction.x * speed * dt,
-                    direction.y * speed * dt
+                direction.x * speed * dt,
+                direction.y * speed * dt
             );
 
             // Keep within map bounds (assuming 1080x1080 map)
@@ -849,9 +866,9 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         backgroundBatch.begin();
         backgroundBatch.setProjectionMatrix(cam.combined);
         backgroundBatch.draw(
-                backgroundTexture,
-                topLeft.x, topLeft.y, // Position at top-left corner of map
-                screenWidth, screenHeight // Size to fill the entire map in screen coordinates
+            backgroundTexture,
+            topLeft.x, topLeft.y,  // Position at top-left corner of map
+            screenWidth, screenHeight  // Size to fill the entire map in screen coordinates
         );
         backgroundBatch.end();
     }
@@ -865,10 +882,10 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     public void render(SpriteBatch sb) {
         // Clear screen with background color
         Gdx.gl.glClearColor(
-                BACKGROUND_COLOR.r,
-                BACKGROUND_COLOR.g,
-                BACKGROUND_COLOR.b,
-                BACKGROUND_COLOR.a);
+            BACKGROUND_COLOR.r,
+            BACKGROUND_COLOR.g,
+            BACKGROUND_COLOR.b,
+            BACKGROUND_COLOR.a);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
 
         // Update camera
@@ -890,7 +907,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
         renderGameElements();
 
         // Draw UI text
-        renderUI(sb);
+        renderUI();
     }
 
     /**
@@ -1104,49 +1121,41 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     }
 
     /**
-     * Renders UI elements using SpriteBatch.
+     * Renders UI elements
      */
-    private void renderUI(SpriteBatch sb) {
-        // UI is drawn with the passed SpriteBatch (identity projection)
-        sb.begin();
+    private void renderUI() {
+        uiBatch.begin();
+
         font.setColor(Color.WHITE);
+        font.draw(uiBatch, "EXIT", exitButton.x + 20, exitButton.y + 20);
 
-        // Draw player list and positions
-        float y = Gdx.graphics.getHeight() - 50;
-        font.draw(sb, "Players: " + players.size(), 20, y);
+        Map<String, PlayerGameState> playerStates = players;
 
-        // Limit to 3 players in the UI to avoid cluttering
+        float y = Gdx.graphics.getHeight() - 90; // Lower starting position
+        font.draw(uiBatch, "Players: " + playerStates.size(), 20, y);
+
+        List<PlayerGameState> sortedPlayers = new ArrayList<>(playerStates.values());
+        Collections.sort(sortedPlayers, (p1, p2) -> Integer.compare(p2.getScore(), p1.getScore()));
+
         int playerCount = 0;
-        for (PlayerGameState player : players.values()) {
-            if (playerCount >= 3) {
-                break;
-            }
-
+        for (PlayerGameState player : sortedPlayers) {
             y -= 40;
             String pid = player.getPlayer_id().replace("\"", "");
             String isLocal = pid.equals(playerId) ? " (YOU)" : "";
-            font.draw(sb, String.format("Player %s: (%.1f, %.1f)%s",
-                    pid.substring(0, Math.min(4, pid.length())),
-                    player.getX_pos(), player.getY_pos(), isLocal), 20, y);
+
+            font.draw(uiBatch, String.format("Player %s: %d%s",
+                pid.substring(0, Math.min(4, pid.length())),
+                player.getScore(), isLocal), 20, y);
 
             playerCount++;
         }
 
-        // Draw cursor position
-        y -= 40;
-        font.draw(sb, String.format("Cursor: (%.1f, %.1f)",
-                targetPosition.x, targetPosition.y), 20, y);
+        font.draw(uiBatch, "FPS: " + Gdx.graphics.getFramesPerSecond(),
+            Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
 
-        // Draw score if local snake exists
-        if (localSnake != null) {
-            font.draw(sb, "Score: " + localSnake.score,
-                    Gdx.graphics.getWidth() - 150, Gdx.graphics.getHeight() - 50);
-        }
+        font.draw(uiBatch, "Eat food! Press and hold to move", 20, 40);
 
-        // Draw instructions
-        font.draw(sb, "Press and hold to move", 20, 40);
-
-        sb.end();
+        uiBatch.end();
     }
 
     /**
@@ -1171,21 +1180,12 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
     public void dispose() {
         try {
             // Dispose rendering resources
-            if (backgroundBatch != null) {
-                backgroundBatch.dispose();
-            }
-            if (shapes != null) {
-                shapes.dispose();
-            }
-            if (font != null) {
-                font.dispose();
-            }
-            if (gameBatch != null) {
-                gameBatch.dispose();
-            }
-            if (foodBatch != null) {
-                foodBatch.dispose();
-            }
+            if (backgroundBatch != null) backgroundBatch.dispose();
+            if (shapes != null) shapes.dispose();
+            if (font != null) font.dispose();
+            if (gameBatch != null) gameBatch.dispose();
+            if (foodBatch != null) foodBatch.dispose();
+            if (uiBatch != null) uiBatch.dispose();
 
             // Clean up API connections
             if (realtimeGameStateApi != null) {
@@ -1247,7 +1247,7 @@ public class PlayState extends State implements RealtimeGameStateApi.GameStateCa
                         @Override public String getSupabaseUrl() { return Config.getSupabaseUrl(); }
                         @Override public String getSupabaseKey() { return Config.getSupabaseKey(); }
                     };
-                    
+
                     // Create API and delete lobby
                     LobbyPlayerApi lobbyPlayerApi = new LobbyPlayerApi(config);
                     log("Game over: Deleting lobby with ID: " + lobbyId);
