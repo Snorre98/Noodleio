@@ -238,9 +238,9 @@ public PlayState(GameStateManager gsm, String sessionId, String playerId, String
         // Register for callbacks and connect
         this.realtimeGameStateApi.addCallback(this);
         String result = this.realtimeGameStateApi.connect(sessionId, playerId);
-        Gdx.app.log("PlayState", "Connection result: " + result);
+        log("Connection result: " + result);
     } catch (Exception e) {
-        Gdx.app.error("PlayState", "Error initializing game state APIs", e);
+        logError("Error initializing game state APIs", e);
     }
 
     // Initialize snake-related components
@@ -519,7 +519,7 @@ private void renderGameElements() {
             lastReportedScore = newScore;
 
             // Log the score update
-            Gdx.app.log("PlayState", "Updated score to " + newScore);
+            log("Updated score to " + newScore);
         }
     }
 
@@ -1113,7 +1113,7 @@ private void renderGameElements() {
             // Disconnect from the game session
             realtimeGameStateApi.disconnect();
         } catch (Exception e) {
-            Gdx.app.error("PlayState", "Error disconnecting", e);
+            logError("Error disconnecting", e);
         }
 
         // Return to menu state
@@ -1139,7 +1139,7 @@ private void renderGameElements() {
                 realtimeGameStateApi.disconnect();
             }
         } catch (Exception e) {
-            Gdx.app.error("PlayState", "Error disposing resources", e);
+            logError("Error disposing resources", e);
         }
     }
 
@@ -1165,7 +1165,7 @@ private void renderGameElements() {
                 }
             }
         } catch (Exception e) {
-            Gdx.app.error("PlayState", "Error updating player state", e);
+            logError("Error updating player state", e);
         }
     }
 
@@ -1182,7 +1182,7 @@ private void renderGameElements() {
      */
     @Override
     public void onGameOver() {
-        Gdx.app.log("PlayState", "Game over received");
+        log("Game over received");
 
         // Create a copy of the players to avoid concurrent modification
         final Map<String, PlayerGameState> playersCopy = new HashMap<>(players);
@@ -1228,7 +1228,7 @@ private void renderGameElements() {
                     // Transition to EndGameState
                     gsm.set(new EndGameState(gsm, results, playerName, placement, rm, currentSession));
                 } catch (Exception e) {
-                    Gdx.app.error("PlayState", "Error transitioning to end game state", e);
+                    logError("Error transitioning to end game state", e);
                     // Fallback to menu if there's an error
                     gsm.set(new MenuState(gsm));
                 }

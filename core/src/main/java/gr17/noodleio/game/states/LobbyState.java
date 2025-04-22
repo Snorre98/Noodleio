@@ -67,8 +67,7 @@ public class LobbyState extends State {
         this.playerId = playerId;
         this.playerName = playerName;
 
-        Gdx.app.log("LobbyState", "Setting lobby data - Lobby ID: " + lobbyId +
-            ", Player ID: " + playerId + ", Player Name: " + playerName);
+        log("Set local data for: " + lobbyId);
 
         // Update UI with the new lobby data
         updateUI();
@@ -152,7 +151,7 @@ public class LobbyState extends State {
             skin.add("default", labelStyle);
 
         } catch (Exception e) {
-            Gdx.app.error("LeaderboardState", "Error loading skin resources", e);
+            logError("Error loading skin resources", e);
 
             // Create a minimal fallback skin if the above fails
             if (skin.getFont("default-font") == null) {
@@ -276,7 +275,7 @@ public class LobbyState extends State {
                     }
                 }
             } catch (Exception e) {
-                Gdx.app.error("LobbyState", "Error checking lobby owner", e);
+                logError("Error checking lobby owner", e);
             }
         }
     }
@@ -285,11 +284,12 @@ public class LobbyState extends State {
         if (lobbyId != null) {
             try {
                 // Get players from the API
-                Gdx.app.log("LobbyState", "Refreshing players list for lobby: " + lobbyId);
+                log("Refreshing players list for lobby...");
                 String players = lobbyPlayerApi.getPlayersInLobby(lobbyId);
+                log("Refreshing players list for lobby: success");
                 playersLabel.setText(players);
             } catch (Exception e) {
-                Gdx.app.error("LobbyState", "Error refreshing players list", e);
+                logError("Error refreshing players list", e);
                 playersLabel.setText("Error loading players: " + e.getMessage());
             }
         }
@@ -298,14 +298,17 @@ public class LobbyState extends State {
     private void startGame() {
         if (lobbyId != null && playerId != null) {
             statusLabel.setText("Starting game...");
-            Gdx.app.log("LobbyState", "Starting game with playerId: " + playerId + " and lobbyId: " + lobbyId);
+            log("Starting game with owner: " + playerId + " and lobbyId: " + lobbyId + "...");
 
             try {
                 // Call the API to start a game session
                 String result = lobbyPlayerApi.startGameSession(playerId, lobbyId);
-                Gdx.app.log("LobbyState", "Game session start result: " + result);
+                log("successfully created game session with owner:" + playerId + "and lobbyId:" + lobbyId);
 
                 if (result.contains("Game session started successfully")) {
+
+                    //TODO -- important! Find a better way to trigger game session, like fetching sessionId by lobby id
+                    //TODO -- instead of this weird parsing.
                     // Extract session ID
                     String sessionId = null;
                     if (result.contains("ID:")) {
@@ -313,7 +316,7 @@ public class LobbyState extends State {
                         int commaIndex = result.indexOf(",", idIndex);
                         if (commaIndex > idIndex) {
                             sessionId = result.substring(idIndex, commaIndex).trim();
-                            Gdx.app.log("LobbyState", "Extracted session ID: " + sessionId);
+                            log("Extracted session ID: " + sessionId);
                         }
                     }
 
@@ -333,8 +336,8 @@ public class LobbyState extends State {
                     statusLabel.setText("Failed to start game: " + result);
                 }
             } catch (Exception e) {
-                Gdx.app.error("LobbyState", "Error starting game", e);
-                statusLabel.setText("Error starting game: " + e.getMessage());
+                logError("Error starting game", e);
+                statusLabel.setText("Error starting game");
             }
         } else {
             statusLabel.setText("Error: Missing lobby or player data");
@@ -367,14 +370,19 @@ public class LobbyState extends State {
     private void checkForActiveGameSession() {
         if (lobbyId != null) {
             try {
+                log("Check active game session");
                 // Check if there's an active game session for this lobby
                 String result = lobbyPlayerApi.checkActiveGameSession(lobbyId);
+
+                // TODO -- important! Find a better way to trigger game session, like fetching sessionId by lobby id
+                // TODO -- instead of this weird parsing.
+                // Extract session ID
 
                 if (result != null && result.contains("session_id:")) {
                     // Extract session ID
                     String sessionId = extractSessionId(result);
                     if (sessionId != null && !sessionId.isEmpty()) {
-                        Gdx.app.log("LobbyState", "Active game session found: " + sessionId);
+                        log("Active game session found: " + sessionId);
 
                         // Create resource manager
                         ResourceManager rm = new ResourceManager();
@@ -392,7 +400,7 @@ public class LobbyState extends State {
                     }
                 }
             } catch (Exception e) {
-                Gdx.app.error("LobbyState", "Error checking for active game session", e);
+                logError("Error checking for active game session", e);
             }
         }
     }
@@ -405,7 +413,7 @@ public class LobbyState extends State {
             if (endIndex == -1) endIndex = result.length();
             return result.substring(startIndex, endIndex).trim();
         } catch (Exception e) {
-            Gdx.app.error("LobbyState", "Error extracting session ID", e);
+            logError("Error extracting session ID", e);
             return null;
         }
     }

@@ -35,7 +35,7 @@ public class LeaderboardState extends State {
 
     public LeaderboardState(GameStateManager gsm) {
         super(gsm);
-        Gdx.app.log("LeaderboardState", "Initializing LeaderboardState");
+        log("Initializing LeaderboardState");
 
         // Initialize environment config and API
         initializeApi();
@@ -139,7 +139,7 @@ public class LeaderboardState extends State {
             skin.add("default", labelStyle);
 
         } catch (Exception e) {
-            Gdx.app.error("LeaderboardState", "Error loading skin resources", e);
+            logError("Error loading skin resources", e);
 
             // Create a minimal fallback skin
             skin = new Skin();
@@ -176,7 +176,7 @@ public class LeaderboardState extends State {
             table.add(titleLabel).padBottom(40).colspan(2);
             table.row();
         } catch (Exception e) {
-            Gdx.app.error("LeaderboardState", "Error creating title", e);
+            logError("Error creating title", e);
             // Add a simple title as fallback
             Label titleLabel = new Label("LEADERBOARD", new Label.LabelStyle(skin.getFont("default-font"), null));
             table.add(titleLabel).padBottom(40).colspan(2);
@@ -226,7 +226,7 @@ public class LeaderboardState extends State {
             // Parse and display entries
             updateLeaderboardDisplay(result);
         } catch (Exception e) {
-            Gdx.app.error("LeaderboardState", "Error loading leaderboard", e);
+            logError("Error loading leaderboard", e);
             statusLabel.setText("Error loading leaderboard: " + e.getMessage());
         }
     }

@@ -25,7 +25,6 @@ import gr17.noodleio.game.models.GameSession;
 import gr17.noodleio.game.util.ResourceManager;
 
 public class EndGameState extends State {
-    private static final boolean DEBUG_LOGGING = true;
     private Stage stage;
     private Skin skin;
     private Table table;
@@ -33,26 +32,7 @@ public class EndGameState extends State {
     private String playerName;
     private int placement;
     private ResourceManager rm;
-
     private LeaderboardApi leaderboardApi;
-
-    private void log(String message) {
-        if (DEBUG_LOGGING) {
-            Gdx.app.log("EndGameState", message);
-        }
-    }
-
-    private void logError(String message, Throwable e) {
-        if (DEBUG_LOGGING) {
-            Gdx.app.error("EndGameState", message, e);
-        }
-    }
-
-    private void logError(String message) {
-        if (DEBUG_LOGGING) {
-            Gdx.app.error("EndGameState", message);
-        }
-    }
 
     public EndGameState(GameStateManager gsm, Array<PlayerResult> results, String playerName, int placement, ResourceManager rm, GameSession gameSession) {
         super(gsm);

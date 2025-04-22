@@ -131,7 +131,7 @@ public class MenuState extends State {
             skin.add("default", labelStyle);
 
         } catch (Exception e) {
-            Gdx.app.error("MenuState", "Error loading skin resources", e);
+            logError("Error loading skin resources", e);
 
             // Create a minimal fallback skin
             skin = new Skin();
@@ -177,7 +177,7 @@ public class MenuState extends State {
             table.add(titleLabel).padBottom(50).colspan(1);
             table.row();
         } catch (Exception e) {
-            Gdx.app.error("MenuState", "Error creating title", e);
+            logError("Error creating title", e);
             // Add a simple title as fallback
             Label titleLabel = new Label("NOODLEIO", new Label.LabelStyle(skin.getFont("default-font"), null));
             table.add(titleLabel).padBottom(50).colspan(1);
@@ -256,7 +256,7 @@ public class MenuState extends State {
         leaderboardButton.addListener(new ChangeListener() {
             @Override
             public void changed(ChangeEvent event, Actor actor) {
-                Gdx.app.log("MenuState", "Leaderboard button clicked, transitioning to LeaderboardState");
+                log("Leaderboard button clicked, transitioning to LeaderboardState");
                 gsm.set(new LeaderboardState(gsm));
             }
         });
@@ -265,11 +265,11 @@ public class MenuState extends State {
     private void createLobbyWithOwner(String playerName, GameStateManager gsm) {
         try {
             statusLabel.setText("Creating lobby...");
-            Gdx.app.log("MenuState", "Attempting to create lobby with player: " + playerName);
+            log("Attempting to create lobby with player: " + playerName);
 
             // Create lobby with owner
             String result = lobbyApi.createLobbyWithOwner(playerName);
-            Gdx.app.log("MenuState", "Lobby creation result: " + result);
+            log("Lobby creation result: " + result);
 
             // Parse response to extract IDs
             if (result.contains("Lobby created with ID:")) {
@@ -277,14 +277,14 @@ public class MenuState extends State {
                 if (parts.length > 0) {
                     String lobbyPart = parts[0].trim();
                     lobbyId = lobbyPart.substring(lobbyPart.lastIndexOf(":") + 1).trim();
-                    Gdx.app.log("MenuState", "Extracted lobby ID: " + lobbyId);
+                    log("Extracted lobby ID: " + lobbyId);
                 }
 
                 if (parts.length > 1) {
                     String playerPart = parts[1].trim();
                     String idSection = playerPart.substring(playerPart.lastIndexOf(":") + 1).trim();
                     playerId = idSection;
-                    Gdx.app.log("MenuState", "Extracted player ID: " + playerId);
+                    log("Extracted player ID: " + playerId);
                 }
 
                 // Transition to lobby state with the created lobby data
@@ -295,29 +295,29 @@ public class MenuState extends State {
                 // No need to dispose here as gsm.set() will handle it
             } else {
                 // Show error message
-                statusLabel.setText("Failed to create lobby: " + result);
-                Gdx.app.error("MenuState", "Failed to create lobby: " + result);
+                statusLabel.setText("Failed to create lobby");
+                logError("Failed to create lobby. Result: " + result);
             }
         } catch (Exception e) {
-            Gdx.app.error("MenuState", "Error creating lobby with owner", e);
+            logError("Error creating lobby with owner", e);
             if (e.getCause() != null) {
-                Gdx.app.error("MenuState", "Caused by: " + e.getCause().getMessage());
+                logError("Caused by: " + e.getCause().getMessage());
             }
-            statusLabel.setText("Error: " + e.getMessage());
+            statusLabel.setText("Unresolved error");
         }
     }
 
     private void joinLobby(String playerName, String lobbyId, GameStateManager gsm){
         try {
             statusLabel.setText("Joining lobby... ");
-            Gdx.app.log("MenuState", "Attempting to join lobby with player: " + playerName);
+            log("Attempting to join lobby with player: " + playerName);
             String result = lobbyPlayerApi.joinLobby(playerName, lobbyId);
-            Gdx.app.log("MenuState", "Lobby player API result: " + result);
+            log("Lobby player API result: " + result);
             LobbyState lobbyState = new LobbyState(gsm);
             lobbyState.setLobbyData(lobbyId, "Not needed", playerName);
             gsm.set(lobbyState);
         } catch (Exception e){
-            Gdx.app.error("MenuState", "Error joining lobby", e);
+            logError("Error joining lobby", e);
         }
     }
 
@@ -400,7 +400,7 @@ public class MenuState extends State {
             }
         } catch (Exception e) {
             // Log any errors during disposal but don't crash
-            Gdx.app.error("MenuState", "Error during dispose", e);
+            logError("Error during dispose", e);
         }
     }
 }
