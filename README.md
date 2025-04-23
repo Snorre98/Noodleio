@@ -22,6 +22,7 @@ The overall project structure is the following :
 - **Entities** folder contains the classes of all the entites in our game, which is the snake, it's body and the food.
 - **Services** folder which contains some functions in which code is communicating with Supabase to retrieve / send data.
 - **API** folder which contains functions that are calling the services ones. These API functions are returning values that are use in the files of the **States** folder.
+> The API keys must be added for connection to the backend server when developing the game. This enables actions like creating a lobby, joining a lobby, starting a game session and playing the game, as well as the leaderboard. The APK file is build with the API keys and is therefor integrated with the backend server. The API keys are kept secret within the developer team and can not be shared on GitHub.
 
 # Developed By
 - Petter Teisberg
